@@ -12,15 +12,15 @@
   <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
     <h1 class="text-3xl font-bold text-gray-800 text-center mb-4">급여 역산 계산기</h1>
     <p class="text-xs text-gray-500 text-center mb-6">
-      2024 간이세액표(1인) + 4대보험 상·하한 + 장기요양 + 10원 절사<br>
-      (※ 간이세액·4대보험 모두 <b>비과세 제외 금액</b> 기준 / 국민연금 기준소득은 <b>천원단위</b> 적용)
+      2024 간이세액표(1인) + 4대보험 상·하한 + 장기요양 + <b>10원 절사</b><br>
+      (세목·보험 모두 <b>비과세 제외 금액</b> 기준 / 국민연금 기준소득은 <b>천원단위</b>)
     </p>
 
     <div class="mb-3">
       <label class="block text-gray-700 font-semibold mb-2">실수령액 (원)</label>
       <input id="net_pay" type="text" inputmode="numeric"
              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-             placeholder="예: 3,000,000">
+             placeholder="예: 11,350,000">
     </div>
 
     <div class="mb-4">
@@ -78,7 +78,8 @@
   <script>
     // 입력 천단위 콤마
     const bindComma = el => el.addEventListener('input', e => {
-      const d = e.target.value.replace(/[^\d]/g,''); e.target.value = d? new Intl.NumberFormat('ko-KR').format(+d): '';
+      const d = e.target.value.replace(/[^\d]/g,'');
+      e.target.value = d ? new Intl.NumberFormat('ko-KR').format(+d) : '';
     });
     const netInput = document.getElementById('net_pay');
     const nonTaxInput = document.getElementById('nontax');
@@ -91,8 +92,8 @@
     // 요율(근로자부담)
     const NP_RATE=0.0450, HI_RATE=0.03545, LTC_RATE=0.1295, EI_RATE=0.0090;
 
-    // 소득세 10,000천원(=10,000,000원) 기준세액(1인) 고정
-    const BASE10_1PERSON = 1_507_400;
+    // 소득세 10,000천원 기준세액(1인) — '원값'(조견표 원자료)
+    const BASE10_1PERSON_RAW = 1_507_405;
 
     // 공통 유틸
     const fmt = n => new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원';
@@ -115,9 +116,7 @@
         TAX_TABLE.sort((a,b)=>a.min_won-b.min_won);
         tableReady=true; statusEl.textContent='세액표 로드 완료';
         document.getElementById('calc_btn').disabled=false;
-      }catch(e){
-        statusEl.textContent='세액표 로드 실패: '+e.message;
-      }
+      }catch(e){ statusEl.textContent='세액표 로드 실패: '+e.message; }
     }
     loadTax();
 
@@ -133,21 +132,20 @@
       return {found:false,tax:0};
     }
 
-    // 10,000천원 기준세액(표 미만 구간 문제 방지: 고정값 사용)
-    const taxAt10M = () => BASE10_1PERSON;
-
-    // 간이세액표 + 고액구간 조견식
+    // 간이세액(표 범위면 표세액, 초과구간은 조견식) — 최종 10원 절사
     function simplifiedTax(amountExclNT){
-      const t=lookupTable(amountExclNT);
-      if(t.found) return t.tax;
-      const base10=taxAt10M(), g=amountExclNT;
-      if(g>10_000_000&&g<=14_000_000) return base10 + 0.35*0.98*(g-10_000_000) + 25_000;
-      if(g>14_000_000&&g<=28_000_000) return base10 + 1_397_000 + 0.38*0.98*(g-14_000_000);
-      if(g>28_000_000&&g<=30_000_000) return base10 + 6_610_600 + 0.40*0.98*(g-28_000_000);
-      if(g>30_000_000&&g<=45_000_000) return base10 + 7_394_600 + 0.40*(g-30_000_000);
-      if(g>45_000_000&&g<=87_000_000) return base10 + 13_394_600 + 0.42*(g-45_000_000);
-      if(g>87_000_000)               return base10 + 31_034_600 + 0.45*(g-87_000_000);
-      const first=TAX_TABLE[0]; return Number(first?.tax)||0;
+      const r=lookupTable(amountExclNT);
+      if(r.found) return trunc10(r.tax);
+
+      const g=amountExclNT, b10=BASE10_1PERSON_RAW;
+      let t=b10;
+      if(g>10_000_000&&g<=14_000_000) t += 25_000 + 0.35*0.98*(g-10_000_000);
+      else if(g>14_000_000&&g<=28_000_000) t += 1_397_000 + 0.38*0.98*(g-14_000_000);
+      else if(g>28_000_000&&g<=30_000_000) t += 6_610_600 + 0.40*0.98*(g-28_000_000);
+      else if(g>30_000_000&&g<=45_000_000) t += 7_394_600 + 0.40*(g-30_000_000);
+      else if(g>45_000_000&&g<=87_000_000) t += 13_394_600 + 0.42*(g-45_000_000);
+      else if(g>87_000_000)               t += 31_034_600 + 0.45*(g-87_000_000);
+      return trunc10(t);
     }
 
     // 계산
@@ -161,41 +159,40 @@
         return;
       }
 
-      // 근사 시작
+      // 초기값: 고정점 방식으로 수렴
       let approx = NP_RATE + HI_RATE + (HI_RATE*LTC_RATE) + EI_RATE;
       let gross = netPay / (1 - approx);
 
       for(let i=0;i<160;i++){
         const baseIns = Math.max(gross - nonTax, 0);          // 보수월액 = 비과세 제외
 
-        // ★ 국민연금 기준소득월액: 천원 단위 내림 후 상·하한
+        // 국민연금: 기준소득월액 = 천원단위 내림 후 상·하한
         const npBaseRaw = Math.floor(baseIns / 1000) * 1000;
         const baseNP = clamp(npBaseRaw, NP_MIN, NP_MAX);
 
-        // 건보/고용은 보수월액 그대로 상·하한
+        // 건보/고용: 보수월액 상·하한
         const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
-        const baseEI = baseIns;                                // 고용보험 한도 없음
+        const baseEI = baseIns;
 
-        // 4대보험 (10원 절사)
+        // 4대보험(10원 절사)
         const np  = trunc10(baseNP * NP_RATE);
         const hi  = trunc10(baseHI * HI_RATE);
-        const ltc = trunc10(hi * LTC_RATE);                   // 장기요양 = '건보료'의 12.95%
+        const ltc = trunc10(hi * LTC_RATE);
         const ei  = trunc10(baseEI * EI_RATE);
 
-        // 소득세/지방세: 10원 절사
+        // 세금(모두 10원 절사)
         const tax  = trunc10(simplifiedTax(baseIns));
         const ltax = trunc10(tax * 0.1);
 
         const total = np + hi + ltc + ei + tax + ltax;
-        const currentNet = gross - total;
-        const diff = netPay - currentNet;
-        if(Math.abs(diff)<1) break;
-        gross += diff;
+        const newGross = netPay + total;               // 고정점 갱신
+        if (Math.abs(newGross - gross) < 1) { gross = newGross; break; }
+        gross = newGross;
       }
 
-      // 최종 표시 (동일 로직)
+      // 최종 표시
       const baseIns = Math.max(gross - nonTax, 0);
-      const npBaseRaw = Math.floor(baseIns / 1000) * 1000;    // ★ 천원단위 내림
+      const npBaseRaw = Math.floor(baseIns / 1000) * 1000;
       const baseNP = clamp(npBaseRaw, NP_MIN, NP_MAX);
       const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
       const baseEI = baseIns;
@@ -204,8 +201,8 @@
       const hi  = trunc10(baseHI * HI_RATE);
       const ltc = trunc10(hi * LTC_RATE);
       const ei  = trunc10(baseEI * EI_RATE);
-      const tax = trunc10(simplifiedTax(baseIns));            // 10원 절사
-      const ltax= trunc10(tax * 0.1);                         // 10원 절사
+      const tax = trunc10(simplifiedTax(baseIns));
+      const ltax= trunc10(tax * 0.1);
       const total = np + hi + ltc + ei + tax + ltax;
 
       document.getElementById('gross_pay_result').textContent        = fmt(gross);
@@ -223,6 +220,7 @@
       document.getElementById('base_hi').textContent  = fmt(baseHI);
       document.getElementById('base_ei').textContent  = fmt(baseEI);
       document.getElementById('base_tax').textContent = fmt(baseIns);
+
       document.getElementById('result').classList.remove('hidden');
       document.getElementById('error_message').classList.add('hidden');
     }
