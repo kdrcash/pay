@@ -13,7 +13,8 @@
     <h1 class="text-3xl font-bold text-gray-800 text-center mb-4">급여 역산 계산기</h1>
     <p class="text-xs text-gray-500 text-center mb-6">
       2024 간이세액표(1인) + 4대보험 상·하한 + 장기요양 + <b>10원 절사</b><br>
-      (세목·보험 모두 <b>비과세 제외 금액</b> 기준 / 국민연금 기준소득은 <b>천원단위</b>)
+      (세목·보험 모두 <b>비과세 제외 금액</b> 기준 / 국민연금 기준소득은 <b>천원단위</b>)<br>
+      <span class="block mt-1">※ <b>보수월액 ≥ 10,000,000원</b>인 경우, 기준세액은 <b>1,507,400(절사값)</b>을 사용</span>
     </p>
 
     <div class="mb-3">
@@ -92,8 +93,9 @@
     // 요율(근로자부담)
     const NP_RATE=0.0450, HI_RATE=0.03545, LTC_RATE=0.1295, EI_RATE=0.0090;
 
-    // 소득세 10,000천원 기준세액(1인) — '원값'(조견표 원자료)
-    const BASE10_1PERSON_RAW = 1_507_405;
+    // 기준세액(10,000천원 1인): 원값/절사값 둘 다 선언
+    const BASE10_RAW   = 1_507_405;  // 조견표 원값
+    const BASE10_TRUNC = 1_507_400;  // 10원 절사값(요청 조건 충족용)
 
     // 공통 유틸
     const fmt = n => new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원';
@@ -133,18 +135,22 @@
     }
 
     // 간이세액(표 범위면 표세액, 초과구간은 조견식) — 최종 10원 절사
+    // ★ 보수월액(비과세 제외) ≥ 10,000,000원이면 기준세액을 '절사값(1,507,400)'으로 강제 사용
     function simplifiedTax(amountExclNT){
       const r=lookupTable(amountExclNT);
       if(r.found) return trunc10(r.tax);
 
-      const g=amountExclNT, b10=BASE10_1PERSON_RAW;
-      let t=b10;
+      const g = amountExclNT;
+      const base10 = (g >= 10_000_000) ? BASE10_TRUNC : BASE10_RAW; // ← 핵심 변경
+      let t = base10;
+
       if(g>10_000_000&&g<=14_000_000) t += 25_000 + 0.35*0.98*(g-10_000_000);
       else if(g>14_000_000&&g<=28_000_000) t += 1_397_000 + 0.38*0.98*(g-14_000_000);
       else if(g>28_000_000&&g<=30_000_000) t += 6_610_600 + 0.40*0.98*(g-28_000_000);
       else if(g>30_000_000&&g<=45_000_000) t += 7_394_600 + 0.40*(g-30_000_000);
       else if(g>45_000_000&&g<=87_000_000) t += 13_394_600 + 0.42*(g-45_000_000);
       else if(g>87_000_000)               t += 31_034_600 + 0.45*(g-87_000_000);
+
       return trunc10(t);
     }
 
