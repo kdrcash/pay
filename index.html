@@ -13,7 +13,7 @@
     <h1 class="text-3xl font-bold text-gray-800 text-center mb-4">급여 역산 계산기</h1>
     <p class="text-xs text-gray-500 text-center mb-6">
       2024 간이세액표(1인) + 4대보험 상·하한 + 장기요양 + 10원 절사<br>
-      (※ 간이세액·4대보험 모두 <b>비과세 제외 금액</b> 기준)
+      (※ 간이세액·4대보험 모두 <b>비과세 제외 금액</b> 기준 / 국민연금 기준소득은 <b>천원단위</b> 적용)
     </p>
 
     <div class="mb-3">
@@ -63,7 +63,7 @@
           <summary class="cursor-pointer">기준 금액(보수월액/세액표 기준) 보기</summary>
           <div class="mt-2 space-y-1">
             <div class="flex justify-between"><span>보수월액(비과세 제외)</span><span id="base_ins"></span></div>
-            <div class="flex justify-between"><span>국민연금 산정기준(상·하한)</span><span id="base_np"></span></div>
+            <div class="flex justify-between"><span>국민연금 기준소득(천원단위·상·하한)</span><span id="base_np"></span></div>
             <div class="flex justify-between"><span>건강보험 산정기준(상·하한)</span><span id="base_hi"></span></div>
             <div class="flex justify-between"><span>고용보험 산정기준</span><span id="base_ei"></span></div>
             <div class="flex justify-between"><span>간이세액표 기준금액</span><span id="base_tax"></span></div>
@@ -110,11 +110,8 @@
         return r.json();
       }
       try{
-        try {
-          TAX_TABLE = await tryFetch('./simplified_tax_table_2024_1person.v2.json');
-        } catch {
-          TAX_TABLE = await tryFetch('./simplified_tax_table_2024_1person.json');
-        }
+        try { TAX_TABLE = await tryFetch('./simplified_tax_table_2024_1person.v2.json'); }
+        catch { TAX_TABLE = await tryFetch('./simplified_tax_table_2024_1person.json'); }
         TAX_TABLE.sort((a,b)=>a.min_won-b.min_won);
         tableReady=true; statusEl.textContent='세액표 로드 완료';
         document.getElementById('calc_btn').disabled=false;
@@ -169,19 +166,25 @@
       let gross = netPay / (1 - approx);
 
       for(let i=0;i<160;i++){
-        const baseIns = Math.max(gross - nonTax, 0);      // 보수월액 = 비과세 제외
-        const baseNP = clamp(baseIns, NP_MIN, NP_MAX);    // 상·하한
-        const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
-        const baseEI = baseIns;                            // 고용보험 한도 없음
+        const baseIns = Math.max(gross - nonTax, 0);          // 보수월액 = 비과세 제외
 
+        // ★ 국민연금 기준소득월액: 천원 단위 내림 후 상·하한
+        const npBaseRaw = Math.floor(baseIns / 1000) * 1000;
+        const baseNP = clamp(npBaseRaw, NP_MIN, NP_MAX);
+
+        // 건보/고용은 보수월액 그대로 상·하한
+        const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
+        const baseEI = baseIns;                                // 고용보험 한도 없음
+
+        // 4대보험 (10원 절사)
         const np  = trunc10(baseNP * NP_RATE);
         const hi  = trunc10(baseHI * HI_RATE);
-        const ltc = trunc10(hi * LTC_RATE);               // 장기요양 = '건보료'의 12.95%
+        const ltc = trunc10(hi * LTC_RATE);                   // 장기요양 = '건보료'의 12.95%
         const ei  = trunc10(baseEI * EI_RATE);
 
-        // ★ 소득세도 10원 절사
-        const tax = trunc10(simplifiedTax(baseIns));
-        const ltax= trunc10(tax * 0.1);                   // 지방세 10원 절사
+        // 소득세/지방세: 10원 절사
+        const tax  = trunc10(simplifiedTax(baseIns));
+        const ltax = trunc10(tax * 0.1);
 
         const total = np + hi + ltc + ei + tax + ltax;
         const currentNet = gross - total;
@@ -190,9 +193,10 @@
         gross += diff;
       }
 
-      // 최종 표시
+      // 최종 표시 (동일 로직)
       const baseIns = Math.max(gross - nonTax, 0);
-      const baseNP = clamp(baseIns, NP_MIN, NP_MAX);
+      const npBaseRaw = Math.floor(baseIns / 1000) * 1000;    // ★ 천원단위 내림
+      const baseNP = clamp(npBaseRaw, NP_MIN, NP_MAX);
       const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
       const baseEI = baseIns;
 
@@ -200,8 +204,8 @@
       const hi  = trunc10(baseHI * HI_RATE);
       const ltc = trunc10(hi * LTC_RATE);
       const ei  = trunc10(baseEI * EI_RATE);
-      const tax = trunc10(simplifiedTax(baseIns));    // 소득세 10원 절사
-      const ltax= trunc10(tax * 0.1);                 // 지방세 10원 절사
+      const tax = trunc10(simplifiedTax(baseIns));            // 10원 절사
+      const ltax= trunc10(tax * 0.1);                         // 10원 절사
       const total = np + hi + ltc + ei + tax + ltax;
 
       document.getElementById('gross_pay_result').textContent        = fmt(gross);
@@ -213,12 +217,12 @@
       document.getElementById('tax_deduction').textContent           = fmt(tax);
       document.getElementById('local_tax_deduction').textContent     = fmt(ltax);
 
+      // 검증용 기준 표시
       document.getElementById('base_ins').textContent = fmt(baseIns);
       document.getElementById('base_np').textContent  = fmt(baseNP);
       document.getElementById('base_hi').textContent  = fmt(baseHI);
       document.getElementById('base_ei').textContent  = fmt(baseEI);
       document.getElementById('base_tax').textContent = fmt(baseIns);
-
       document.getElementById('result').classList.remove('hidden');
       document.getElementById('error_message').classList.add('hidden');
     }
