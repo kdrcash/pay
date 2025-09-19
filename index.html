@@ -14,15 +14,22 @@
   <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
     <h1 class="text-3xl font-bold text-gray-800 text-center mb-4">급여 역산 계산기</h1>
     <p class="text-xs text-gray-500 text-center mb-6">
-      실수령액을 입력하면 지급총액과 공제액을 역산하여 보여줍니다.
-      <span class="block mt-1">※ 2024년 간이세액표(1인 기준, 업로드 파일 기준) 적용</span>
+      실수령액을 입력하면 지급총액과 공제액을 역산하여 보여줍니다.<br>
+      <span class="block mt-1">※ 2024년 간이세액표(1인 기준, 업로드 파일) + 장기요양 + 10원 절사 규칙 반영</span>
     </p>
 
-    <div class="mb-4">
+    <div class="mb-3">
       <label for="net_pay" class="block text-gray-700 font-semibold mb-2">실수령액 (원)</label>
       <input type="text" id="net_pay" inputmode="numeric"
              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
              placeholder="예: 3,000,000">
+    </div>
+
+    <div class="mb-4">
+      <label for="nontax" class="block text-gray-700 font-semibold mb-2">비과세 합계(월) — 식대/자가운전 등 (원)</label>
+      <input type="text" id="nontax" inputmode="numeric"
+             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+             placeholder="예: 200,000 (없으면 0)">
       <p id="table_status" class="text-[11px] text-gray-400 mt-1">세액표 불러오는 중…</p>
     </div>
 
@@ -50,10 +57,12 @@
         <ul class="text-sm text-gray-500 space-y-1">
           <li class="flex justify-between"><span>국민연금 (4.5%)</span> <span id="np_deduction"></span></li>
           <li class="flex justify-between"><span>건강보험 (3.545%)</span> <span id="hi_deduction"></span></li>
+          <li class="flex justify-between"><span>장기요양보험 (건보의 12.81%)</span> <span id="ltc_deduction"></span></li>
           <li class="flex justify-between"><span>고용보험 (0.9%)</span> <span id="ei_deduction"></span></li>
           <li class="flex justify-between"><span>소득세 (간이세액표)</span> <span id="tax_deduction"></span></li>
           <li class="flex justify-between"><span>지방소득세 (소득세의 10%)</span> <span id="local_tax_deduction"></span></li>
         </ul>
+        <p class="text-[11px] text-gray-400 mt-2">※ 모든 공제액은 10원 단위 절사 적용.</p>
       </div>
     </div>
 
@@ -64,12 +73,17 @@
 
   <script>
     // ===== 입력창 천단위 콤마 처리 =====
+    function bindCommaInput(el) {
+      el.addEventListener('input', (e) => {
+        const digits = e.target.value.replace(/[^\d]/g, '');
+        if (!digits) { e.target.value = ''; return; }
+        e.target.value = new Intl.NumberFormat('ko-KR').format(Number(digits));
+      });
+    }
     const netInput = document.getElementById('net_pay');
-    netInput.addEventListener('input', (e) => {
-      const digits = e.target.value.replace(/[^\d]/g, '');
-      if (!digits) { e.target.value = ''; return; }
-      e.target.value = new Intl.NumberFormat('ko-KR').format(Number(digits));
-    });
+    const nonTaxInput = document.getElementById('nontax');
+    bindCommaInput(netInput);
+    bindCommaInput(nonTaxInput);
 
     // ===== 전역 상태 =====
     let TAX_TABLE = []; // [{min_won, max_won, tax}, ...]
@@ -98,9 +112,11 @@
 
     // ===== 유틸 =====
     const fmt = (num) => new Intl.NumberFormat('ko-KR').format(Math.round(num)) + ' 원';
+    const toNumber = (el) => parseFloat((el.value || '0').replace(/[^\d]/g, '')) || 0;
+    const trunc10 = (v) => Math.floor(v / 10) * 10;
 
-    // 표에서 특정 월급여에 해당하는 세액 조회 (구간 [min, max) 매칭)
-    function _lookupTaxFromTable(monthlyGross) {
+    // 표에서 특정 월급여(비과세 제외) 구간 세액 조회
+    function _lookupTaxFromTable(monthlyGrossExclNT) {
       if (!tableReady || !Array.isArray(TAX_TABLE) || TAX_TABLE.length === 0) {
         return { found: false, tax: 0 };
       }
@@ -108,9 +124,9 @@
       while (lo <= hi) {
         const mid = (lo + hi) >> 1;
         const row = TAX_TABLE[mid];
-        if (monthlyGross < row.min_won) {
+        if (monthlyGrossExclNT < row.min_won) {
           hi = mid - 1;
-        } else if (monthlyGross >= row.max_won) {
+        } else if (monthlyGrossExclNT >= row.max_won) {
           lo = mid + 1;
         } else {
           return { found: true, tax: Number(row.tax) || 0 };
@@ -119,29 +135,22 @@
       return { found: false, tax: 0 };
     }
 
-    // 1천만원(10,000천원) 구간의 표기준 세액
+    // 1천만원(10,000천원) 구간의 표기준 세액 (비과세 제외 금액으로 조회)
     function _taxAt10M() {
       const res = _lookupTaxFromTable(10_000_000);
       return res.found ? res.tax : 0;
     }
 
     /**
-     * 간이세액표(1인) + 고액구간 추가 규정 반영
-     * - 10,000천원 초과 ~ 14,000천원 이하:  (10,000천원 세액) + 0.35 * 0.98 * (초과분) + 25,000
-     * - 14,000천원 초과 ~ 28,000천원 이하:  (10,000천원 세액) + 1,397,000 + 0.38 * 0.98 * (초과분)
-     * - 28,000천원 초과 ~ 30,000천원 이하:  (10,000천원 세액) + 6,610,600 + 0.40 * 0.98 * (초과분)
-     * - 30,000천원 초과 ~ 45,000천원 이하:  (10,000천원 세액) + 7,394,600 + 0.40 * (초과분)
-     * - 45,000천원 초과 ~ 87,000천원 이하:  (10,000천원 세액) + 13,394,600 + 0.42 * (초과분)
-     * - 87,000천원 초과:                   (10,000천원 세액) + 31,034,600 + 0.45 * (초과분)
+     * 간이세액표(1인) + 고액구간 추가 규정
+     * (비과세 제외 금액 기준으로 적용)
      */
-    function getSimplifiedTaxFromTable(monthlyGross) {
-      // 1) 표에서 먼저 찾기
-      const tableRes = _lookupTaxFromTable(monthlyGross);
+    function getSimplifiedTaxFromTable(monthlyGrossExclNT) {
+      const tableRes = _lookupTaxFromTable(monthlyGrossExclNT);
       if (tableRes.found) return tableRes.tax;
 
-      // 2) 표 범위 밖(= 고액구간) 조견식 적용
       const base10M = _taxAt10M();
-      const g = monthlyGross;
+      const g = monthlyGrossExclNT;
 
       if (g > 10_000_000 && g <= 14_000_000) {
         return base10M + 0.35 * 0.98 * (g - 10_000_000) + 25_000;
@@ -157,7 +166,7 @@
         return base10M + 31_034_600 + 0.45 * (g - 87_000_000);
       }
 
-      // g가 표 최솟값보다 작은 경우: 최솟값 구간 세액(보수적)
+      // g가 표 최솟값보다 작은 경우: 최솟값 구간 세액
       const first = TAX_TABLE[0];
       return Number(first?.tax) || 0;
     }
@@ -168,37 +177,41 @@
     document.getElementById('calc_btn').addEventListener('click', calculateGrossPay);
 
     function calculateGrossPay() {
-      const raw = netInput.value.replace(/[^\d]/g, '');
-      const netPay = parseFloat(raw);
+      if (!tableReady) { statusEl.textContent = '세액표가 아직 준비되지 않았습니다.'; return; }
 
-      if (!tableReady) {
-        statusEl.textContent = '세액표가 아직 준비되지 않았습니다.';
-        return;
-      }
-      if (isNaN(netPay) || netPay <= 0) {
+      const netPay = toNumber(netInput);
+      const nonTax = toNumber(nonTaxInput); // 비과세 합계(월)
+      if (netPay <= 0) {
         resultDiv.classList.add('hidden');
         errDiv.classList.remove('hidden');
         return;
       }
 
       // 공제율
-      const nationalPensionRate   = 0.045;    // 국민연금 4.5%
-      const healthInsuranceRate   = 0.03545;  // 건강보험 3.545%
-      const employmentInsuranceRate = 0.009;  // 고용보험 0.9%
+      const npRate   = 0.045;    // 국민연금(근로자) 4.5%
+      const hiRate   = 0.03545;  // 건강보험(근로자) 3.545%
+      const ltcRate  = 0.1281;   // 장기요양보험: 건강보험료의 12.81%
+      const eiRate   = 0.009;    // 고용보험(근로자) 0.9%
 
-      // 초기 추정치(4대보험만 역산)
-      let grossPay = netPay / (1 - nationalPensionRate - healthInsuranceRate - employmentInsuranceRate);
+      // 초기 추정치(4대보험+장기요양 제외만 고려)
+      let grossPay = netPay / (1 - (npRate + hiRate + hiRate*ltcRate + eiRate));
 
-      const maxIterations = 100;
+      const maxIterations = 120;
       for (let i = 0; i < maxIterations; i++) {
-        const np = grossPay * nationalPensionRate;
-        const hi = grossPay * healthInsuranceRate;
-        const ei = grossPay * employmentInsuranceRate;
+        const baseForIns = Math.max(grossPay - nonTax, 0); // 비과세 제외 금액 기준
 
-        const incomeTax = getSimplifiedTaxFromTable(grossPay);
-        const localTax  = incomeTax * 0.1;
+        // 4대보험 + 장기요양 (10원 절사)
+        const np  = trunc10(baseForIns * npRate);
+        const hi  = trunc10(baseForIns * hiRate);
+        const ltc = trunc10(hi * ltcRate);          // 장기요양은 '건보료의 12.81%'
+        const ei  = trunc10(baseForIns * eiRate);
 
-        const totalDed  = np + hi + ei + incomeTax + localTax;
+        // 간이세액표는 '비과세 제외 금액'으로 조회
+        const incomeTaxRaw = getSimplifiedTaxFromTable(baseForIns);
+        const incomeTax    = trunc10(incomeTaxRaw);     // 통상 10원 절사
+        const localTax     = trunc10(incomeTax * 0.1);  // 지방소득세 10% (10원 절사)
+
+        const totalDed = np + hi + ltc + ei + incomeTax + localTax;
         const currentNet = grossPay - totalDed;
 
         const diff = netPay - currentNet;
@@ -206,22 +219,25 @@
         grossPay += diff;
       }
 
-      // 최종 공제 계산
-      const np = grossPay * nationalPensionRate;
-      const hi = grossPay * healthInsuranceRate;
-      const ei = grossPay * employmentInsuranceRate;
-      const incomeTax = getSimplifiedTaxFromTable(grossPay);
-      const localTax  = incomeTax * 0.1;
-      const totalDed  = np + hi + ei + incomeTax + localTax;
+      // 최종 표시값 계산
+      const baseForIns = Math.max(grossPay - nonTax, 0);
+      const np  = trunc10(baseForIns * 0.045);
+      const hi  = trunc10(baseForIns * 0.03545);
+      const ltc = trunc10(hi * 0.1281);
+      const ei  = trunc10(baseForIns * 0.009);
+      const incomeTax = trunc10(getSimplifiedTaxFromTable(baseForIns));
+      const localTax  = trunc10(incomeTax * 0.1);
+      const totalDed  = np + hi + ltc + ei + incomeTax + localTax;
 
       // 출력
-      document.getElementById('gross_pay_result').textContent = fmt(grossPay);
+      document.getElementById('gross_pay_result').textContent        = fmt(grossPay);
       document.getElementById('deductions_total_result').textContent = fmt(totalDed);
-      document.getElementById('np_deduction').textContent = fmt(np);
-      document.getElementById('hi_deduction').textContent = fmt(hi);
-      document.getElementById('ei_deduction').textContent = fmt(ei);
-      document.getElementById('tax_deduction').textContent = fmt(incomeTax);
-      document.getElementById('local_tax_deduction').textContent = fmt(localTax);
+      document.getElementById('np_deduction').textContent            = fmt(np);
+      document.getElementById('hi_deduction').textContent            = fmt(hi);
+      document.getElementById('ltc_deduction').textContent           = fmt(ltc);
+      document.getElementById('ei_deduction').textContent            = fmt(ei);
+      document.getElementById('tax_deduction').textContent           = fmt(incomeTax);
+      document.getElementById('local_tax_deduction').textContent     = fmt(localTax);
 
       resultDiv.classList.remove('hidden');
       errDiv.classList.add('hidden');
