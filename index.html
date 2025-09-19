@@ -85,10 +85,7 @@
         const resp = await fetch('./simplified_tax_table_2024_1person.json', { cache: 'no-store' });
         if (!resp.ok) throw new Error('세액표 파일을 불러오지 못했습니다.');
         TAX_TABLE = await resp.json();
-
-        // 정렬 보정(혹시 순서가 뒤섞여 있으면 대비)
         TAX_TABLE.sort((a, b) => a.min_won - b.min_won);
-
         tableReady = true;
         statusEl.textContent = '세액표 로드 완료';
         calcBtn.disabled = false;
@@ -102,10 +99,11 @@
     // ===== 유틸 =====
     const fmt = (num) => new Intl.NumberFormat('ko-KR').format(Math.round(num)) + ' 원';
 
-    // 간이세액표(1인)에서 월급여 구간에 해당하는 소득세 찾기 (이진 탐색)
-    function getSimplifiedTaxFromTable(monthlyGross) {
-      if (!tableReady || !Array.isArray(TAX_TABLE) || TAX_TABLE.length === 0) return 0;
-
+    // 표에서 특정 월급여에 해당하는 세액 조회 (구간 [min, max) 매칭)
+    function _lookupTaxFromTable(monthlyGross) {
+      if (!tableReady || !Array.isArray(TAX_TABLE) || TAX_TABLE.length === 0) {
+        return { found: false, tax: 0 };
+      }
       let lo = 0, hi = TAX_TABLE.length - 1;
       while (lo <= hi) {
         const mid = (lo + hi) >> 1;
@@ -115,19 +113,58 @@
         } else if (monthlyGross >= row.max_won) {
           lo = mid + 1;
         } else {
-          // monthlyGross ∈ [min_won, max_won)
-          return Number(row.tax) || 0;
+          return { found: true, tax: Number(row.tax) || 0 };
         }
       }
-      // 표 범위를 벗어나면 가장 가까운 구간으로 보정
-      if (monthlyGross < TAX_TABLE[0].min_won) return Number(TAX_TABLE[0].tax) || 0;
-      return Number(TAX_TABLE[TAX_TABLE.length - 1].tax) || 0;
+      return { found: false, tax: 0 };
+    }
+
+    // 1천만원(10,000천원) 구간의 표기준 세액
+    function _taxAt10M() {
+      const res = _lookupTaxFromTable(10_000_000);
+      return res.found ? res.tax : 0;
+    }
+
+    /**
+     * 간이세액표(1인) + 고액구간 추가 규정 반영
+     * - 10,000천원 초과 ~ 14,000천원 이하:  (10,000천원 세액) + 0.35 * 0.98 * (초과분) + 25,000
+     * - 14,000천원 초과 ~ 28,000천원 이하:  (10,000천원 세액) + 1,397,000 + 0.38 * 0.98 * (초과분)
+     * - 28,000천원 초과 ~ 30,000천원 이하:  (10,000천원 세액) + 6,610,600 + 0.40 * 0.98 * (초과분)
+     * - 30,000천원 초과 ~ 45,000천원 이하:  (10,000천원 세액) + 7,394,600 + 0.40 * (초과분)
+     * - 45,000천원 초과 ~ 87,000천원 이하:  (10,000천원 세액) + 13,394,600 + 0.42 * (초과분)
+     * - 87,000천원 초과:                   (10,000천원 세액) + 31,034,600 + 0.45 * (초과분)
+     */
+    function getSimplifiedTaxFromTable(monthlyGross) {
+      // 1) 표에서 먼저 찾기
+      const tableRes = _lookupTaxFromTable(monthlyGross);
+      if (tableRes.found) return tableRes.tax;
+
+      // 2) 표 범위 밖(= 고액구간) 조견식 적용
+      const base10M = _taxAt10M();
+      const g = monthlyGross;
+
+      if (g > 10_000_000 && g <= 14_000_000) {
+        return base10M + 0.35 * 0.98 * (g - 10_000_000) + 25_000;
+      } else if (g > 14_000_000 && g <= 28_000_000) {
+        return base10M + 1_397_000 + 0.38 * 0.98 * (g - 14_000_000);
+      } else if (g > 28_000_000 && g <= 30_000_000) {
+        return base10M + 6_610_600 + 0.40 * 0.98 * (g - 28_000_000);
+      } else if (g > 30_000_000 && g <= 45_000_000) {
+        return base10M + 7_394_600 + 0.40 * (g - 30_000_000);
+      } else if (g > 45_000_000 && g <= 87_000_000) {
+        return base10M + 13_394_600 + 0.42 * (g - 45_000_000);
+      } else if (g > 87_000_000) {
+        return base10M + 31_034_600 + 0.45 * (g - 87_000_000);
+      }
+
+      // g가 표 최솟값보다 작은 경우: 최솟값 구간 세액(보수적)
+      const first = TAX_TABLE[0];
+      return Number(first?.tax) || 0;
     }
 
     // ===== 메인 계산 =====
     const resultDiv = document.getElementById('result');
     const errDiv = document.getElementById('error_message');
-
     document.getElementById('calc_btn').addEventListener('click', calculateGrossPay);
 
     function calculateGrossPay() {
@@ -145,11 +182,11 @@
       }
 
       // 공제율
-      const nationalPensionRate = 0.045;   // 국민연금 (4.5%)
-      const healthInsuranceRate = 0.03545; // 건강보험 (3.545%)
-      const employmentInsuranceRate = 0.009; // 고용보험 (0.9%)
+      const nationalPensionRate   = 0.045;    // 국민연금 4.5%
+      const healthInsuranceRate   = 0.03545;  // 건강보험 3.545%
+      const employmentInsuranceRate = 0.009;  // 고용보험 0.9%
 
-      // 초기 추정치 (4대보험만 역산)
+      // 초기 추정치(4대보험만 역산)
       let grossPay = netPay / (1 - nationalPensionRate - healthInsuranceRate - employmentInsuranceRate);
 
       const maxIterations = 100;
@@ -158,11 +195,10 @@
         const hi = grossPay * healthInsuranceRate;
         const ei = grossPay * employmentInsuranceRate;
 
-        // 간이세액표에서 '월급여액' 기준으로 소득세 조회
         const incomeTax = getSimplifiedTaxFromTable(grossPay);
         const localTax  = incomeTax * 0.1;
 
-        const totalDed = np + hi + ei + incomeTax + localTax;
+        const totalDed  = np + hi + ei + incomeTax + localTax;
         const currentNet = grossPay - totalDed;
 
         const diff = netPay - currentNet;
