@@ -59,13 +59,12 @@
           <li class="flex justify-between"><span>지방소득세 (10%)</span><span id="local_tax_deduction"></span></li>
         </ul>
 
-        <!-- 디버그: 기준 금액 확인용 -->
         <details class="mt-3 text-[11px] text-gray-500">
           <summary class="cursor-pointer">기준 금액(보수월액/세액표 기준) 보기</summary>
           <div class="mt-2 space-y-1">
             <div class="flex justify-between"><span>보수월액(비과세 제외)</span><span id="base_ins"></span></div>
-            <div class="flex justify-between"><span>국민연금 산정기준(상·하한 적용)</span><span id="base_np"></span></div>
-            <div class="flex justify-between"><span>건강보험 산정기준(상·하한 적용)</span><span id="base_hi"></span></div>
+            <div class="flex justify-between"><span>국민연금 산정기준(상·하한)</span><span id="base_np"></span></div>
+            <div class="flex justify-between"><span>건강보험 산정기준(상·하한)</span><span id="base_hi"></span></div>
             <div class="flex justify-between"><span>고용보험 산정기준</span><span id="base_ei"></span></div>
             <div class="flex justify-between"><span>간이세액표 기준금액</span><span id="base_tax"></span></div>
           </div>
@@ -102,7 +101,7 @@
     let TAX_TABLE=[], tableReady=false;
     const statusEl=document.getElementById('table_status');
     async function loadTax(){ try{
-      const r=await fetch('./simplified_tax_table_2024_1person.json',{cache:'no-store'});
+      const r=await fetch('./simplified_tax_table_2024_1person.v2.json',{cache:'no-store'});
       if(!r.ok) throw new Error('세액표 파일 로드 실패');
       TAX_TABLE=await r.json(); TAX_TABLE.sort((a,b)=>a.min_won-b.min_won);
       tableReady=true; statusEl.textContent='세액표 로드 완료';
@@ -110,7 +109,7 @@
     }catch(e){ statusEl.textContent='세액표 로드 실패: '+e.message; }}
     loadTax();
 
-    // 표 조회 & 고액구간
+    // 표 조회
     function lookupTable(x){
       let lo=0,hi=TAX_TABLE.length-1;
       while(lo<=hi){ const m=(lo+hi)>>1, row=TAX_TABLE[m];
@@ -118,8 +117,18 @@
       }
       return {found:false,tax:0};
     }
-    const taxAt10M = ()=>{ const r=lookupTable(10_000_000); return r.found? r.tax:0; };
 
+    // ★ 핵심: 10,000천원 기준세액 (표에 '미만'으로 끝나므로 직전구간/마지막행 사용)
+    function taxAt10M(){
+      // 직전 구간으로 조회
+      const r = lookupTable(10_000_000 - 1);
+      if (r.found) return r.tax;
+      // 혹시 표가 비정상이어도 마지막 행 세액 사용
+      const last = TAX_TABLE[TAX_TABLE.length-1];
+      return Number(last?.tax)||0;
+    }
+
+    // 간이세액표 + 고액구간 조견식
     function simplifiedTax(amountExclNT){
       const t=lookupTable(amountExclNT);
       if(t.found) return t.tax;
@@ -140,27 +149,22 @@
       const netPay=num(netInput), nonTax=num(nonTaxInput);
       if(netPay<=0){ document.getElementById('result').classList.add('hidden'); document.getElementById('error_message').classList.remove('hidden'); return; }
 
-      // 근사 시작(수렴 루프)
+      // 근사 시작
       let approx = NP_RATE + HI_RATE + (HI_RATE*LTC_RATE) + EI_RATE;
       let gross = netPay / (1 - approx);
 
       for(let i=0;i<160;i++){
-        // **핵심: 보수월액은 '비과세 제외' 금액**
-        const baseInsRaw = Math.max(gross - nonTax, 0);
+        const baseIns = Math.max(gross - nonTax, 0);      // 보수월액 = 비과세 제외
+        const baseNP = clamp(baseIns, NP_MIN, NP_MAX);    // 상·하한
+        const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
+        const baseEI = baseIns;                            // 고용보험 한도 없음
 
-        // 상·하한 적용
-        const baseNP = clamp(baseInsRaw, NP_MIN, NP_MAX);
-        const baseHI = clamp(baseInsRaw, HI_MIN, HI_MAX);
-        const baseEI = baseInsRaw; // 고용보험 한도 없음 가정
-
-        // 4대보험 (10원 절사)
         const np  = trunc10(baseNP * NP_RATE);
         const hi  = trunc10(baseHI * HI_RATE);
-        const ltc = trunc10(hi * LTC_RATE);      // 장기요양 = '건보료'의 12.95%
+        const ltc = trunc10(hi * LTC_RATE);               // 장기요양 = '건보료'의 12.95%
         const ei  = trunc10(baseEI * EI_RATE);
 
-        // 간이세액·지방세 (비과세 제외 금액 기준)
-        const tax = trunc10(simplifiedTax(baseInsRaw));
+        const tax = trunc10(simplifiedTax(baseIns));      // 간이세액(비과세 제외 기준)
         const ltax= trunc10(tax * 0.1);
 
         const total = np + hi + ltc + ei + tax + ltax;
@@ -170,17 +174,17 @@
         gross += diff;
       }
 
-      // 최종 표시 (동일 로직)
-      const baseInsRaw = Math.max(gross - nonTax, 0);
-      const baseNP = clamp(baseInsRaw, NP_MIN, NP_MAX);
-      const baseHI = clamp(baseInsRaw, HI_MIN, HI_MAX);
-      const baseEI = baseInsRaw;
+      // 최종 표시
+      const baseIns = Math.max(gross - nonTax, 0);
+      const baseNP = clamp(baseIns, NP_MIN, NP_MAX);
+      const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
+      const baseEI = baseIns;
 
       const np  = trunc10(baseNP * NP_RATE);
       const hi  = trunc10(baseHI * HI_RATE);
       const ltc = trunc10(hi * LTC_RATE);
       const ei  = trunc10(baseEI * EI_RATE);
-      const tax = trunc10(simplifiedTax(baseInsRaw));
+      const tax = trunc10(simplifiedTax(baseIns));
       const ltax= trunc10(tax * 0.1);
       const total = np + hi + ltc + ei + tax + ltax;
 
@@ -193,12 +197,11 @@
       document.getElementById('tax_deduction').textContent           = fmt(tax);
       document.getElementById('local_tax_deduction').textContent     = fmt(ltax);
 
-      // 기준 금액(검증용) 출력
-      document.getElementById('base_ins').textContent = fmt(baseInsRaw);
+      document.getElementById('base_ins').textContent = fmt(baseIns);
       document.getElementById('base_np').textContent  = fmt(baseNP);
       document.getElementById('base_hi').textContent  = fmt(baseHI);
       document.getElementById('base_ei').textContent  = fmt(baseEI);
-      document.getElementById('base_tax').textContent = fmt(baseInsRaw);
+      document.getElementById('base_tax').textContent = fmt(baseIns);
 
       document.getElementById('result').classList.remove('hidden');
       document.getElementById('error_message').classList.add('hidden');
