@@ -52,7 +52,7 @@
         <h3 class="text-lg font-bold text-gray-700 mb-2">세부 공제 내역</h3>
         <ul class="text-sm text-gray-500 space-y-1">
           <li class="flex justify-between"><span>국민연금 (4.5%)</span><span id="np_deduction"></span></li>
-          <li class="flex justify-between"><span>건강보험 (3.55%)</span><span id="hi_deduction"></span></li>
+          <li class="flex justify-between"><span>건강보험 (3.545%)</span><span id="hi_deduction"></span></li>
           <li class="flex justify-between"><span>장기요양 (건보료의 12.95%)</span><span id="ltc_deduction"></span></li>
           <li class="flex justify-between"><span>고용보험 (0.9%)</span><span id="ei_deduction"></span></li>
           <li class="flex justify-between"><span>소득세 (간이세액표)</span><span id="tax_deduction"></span></li>
@@ -89,7 +89,10 @@
     const HI_MIN=279_266, HI_MAX=127_056_982;
 
     // 요율(근로자부담)
-    const NP_RATE=0.0450, HI_RATE=0.0355, LTC_RATE=0.1295, EI_RATE=0.0090;
+    const NP_RATE=0.0450, HI_RATE=0.03545, LTC_RATE=0.1295, EI_RATE=0.0090;
+
+    // 소득세 10,000천원(=10,000,000원) 기준세액(1인) 고정
+    const BASE10_1PERSON = 1_507_400;
 
     // 공통 유틸
     const fmt = n => new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원';
@@ -97,36 +100,44 @@
     const trunc10 = v => Math.floor(v/10)*10;
     const clamp = (x,lo,hi)=>Math.min(Math.max(x,lo),hi);
 
-    // 세액표 로딩
+    // 세액표 로딩 (v2 → 실패 시 구버전 폴백)
     let TAX_TABLE=[], tableReady=false;
     const statusEl=document.getElementById('table_status');
-    async function loadTax(){ try{
-      const r=await fetch('./simplified_tax_table_2024_1person.v2.json',{cache:'no-store'});
-      if(!r.ok) throw new Error('세액표 파일 로드 실패');
-      TAX_TABLE=await r.json(); TAX_TABLE.sort((a,b)=>a.min_won-b.min_won);
-      tableReady=true; statusEl.textContent='세액표 로드 완료';
-      document.getElementById('calc_btn').disabled=false;
-    }catch(e){ statusEl.textContent='세액표 로드 실패: '+e.message; }}
+    async function loadTax(){
+      async function tryFetch(path){
+        const r=await fetch(path,{cache:'no-store'});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        return r.json();
+      }
+      try{
+        try {
+          TAX_TABLE = await tryFetch('./simplified_tax_table_2024_1person.v2.json');
+        } catch {
+          TAX_TABLE = await tryFetch('./simplified_tax_table_2024_1person.json');
+        }
+        TAX_TABLE.sort((a,b)=>a.min_won-b.min_won);
+        tableReady=true; statusEl.textContent='세액표 로드 완료';
+        document.getElementById('calc_btn').disabled=false;
+      }catch(e){
+        statusEl.textContent='세액표 로드 실패: '+e.message;
+      }
+    }
     loadTax();
 
     // 표 조회
     function lookupTable(x){
       let lo=0,hi=TAX_TABLE.length-1;
-      while(lo<=hi){ const m=(lo+hi)>>1, row=TAX_TABLE[m];
-        if(x<row.min_won) hi=m-1; else if(x>=row.max_won) lo=m+1; else return {found:true,tax:+row.tax||0};
+      while(lo<=hi){
+        const m=(lo+hi)>>1, row=TAX_TABLE[m];
+        if(x<row.min_won) hi=m-1;
+        else if(x>=row.max_won) lo=m+1;
+        else return {found:true,tax:+row.tax||0};
       }
       return {found:false,tax:0};
     }
 
-    // ★ 핵심: 10,000천원 기준세액 (표에 '미만'으로 끝나므로 직전구간/마지막행 사용)
-    function taxAt10M(){
-      // 직전 구간으로 조회
-      const r = lookupTable(10_000_000 - 1);
-      if (r.found) return r.tax;
-      // 혹시 표가 비정상이어도 마지막 행 세액 사용
-      const last = TAX_TABLE[TAX_TABLE.length-1];
-      return Number(last?.tax)||0;
-    }
+    // 10,000천원 기준세액(표 미만 구간 문제 방지: 고정값 사용)
+    const taxAt10M = () => BASE10_1PERSON;
 
     // 간이세액표 + 고액구간 조견식
     function simplifiedTax(amountExclNT){
@@ -147,7 +158,11 @@
     function calc(){
       if(!tableReady){ statusEl.textContent='세액표가 아직 준비되지 않았습니다.'; return; }
       const netPay=num(netInput), nonTax=num(nonTaxInput);
-      if(netPay<=0){ document.getElementById('result').classList.add('hidden'); document.getElementById('error_message').classList.remove('hidden'); return; }
+      if(netPay<=0){
+        document.getElementById('result').classList.add('hidden');
+        document.getElementById('error_message').classList.remove('hidden');
+        return;
+      }
 
       // 근사 시작
       let approx = NP_RATE + HI_RATE + (HI_RATE*LTC_RATE) + EI_RATE;
@@ -164,8 +179,9 @@
         const ltc = trunc10(hi * LTC_RATE);               // 장기요양 = '건보료'의 12.95%
         const ei  = trunc10(baseEI * EI_RATE);
 
-        const tax = trunc10(simplifiedTax(baseIns));      // 간이세액(비과세 제외 기준)
-        const ltax= trunc10(tax * 0.1);
+        // ★ 소득세도 10원 절사
+        const tax = trunc10(simplifiedTax(baseIns));
+        const ltax= trunc10(tax * 0.1);                   // 지방세 10원 절사
 
         const total = np + hi + ltc + ei + tax + ltax;
         const currentNet = gross - total;
@@ -184,8 +200,8 @@
       const hi  = trunc10(baseHI * HI_RATE);
       const ltc = trunc10(hi * LTC_RATE);
       const ei  = trunc10(baseEI * EI_RATE);
-      const tax = trunc10(simplifiedTax(baseIns));
-      const ltax= trunc10(tax * 0.1);
+      const tax = trunc10(simplifiedTax(baseIns));    // 소득세 10원 절사
+      const ltax= trunc10(tax * 0.1);                 // 지방세 10원 절사
       const total = np + hi + ltc + ei + tax + ltax;
 
       document.getElementById('gross_pay_result').textContent        = fmt(gross);
