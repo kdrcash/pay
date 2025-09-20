@@ -12,7 +12,7 @@
   <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
     <h1 class="text-3xl font-bold text-gray-800 text-center mb-4">네트급여 계산기</h1>
 
-    <!-- 버전/안내: Ver 1.0 버튼 클릭 시 모달 표시 -->
+    <!-- Ver 1.0 모달 트리거 -->
     <p class="text-xs text-gray-500 text-center mb-6">
       <button id="ver_btn" type="button"
               class="inline-flex items-center gap-1 text-blue-600 font-semibold underline hover:text-blue-800">
@@ -53,7 +53,7 @@
           <span class="text-gray-600">공제액 합계</span>
           <span id="deductions_total_result" class="font-bold text-gray-900"></span>
         </div>
-        <!-- ⬇️ 추가: 상단 요약 내 ‘사업주 부담분 합계’ & ‘4대보험 총액(근로자+사업주)’ -->
+        <!-- 상단 요약: 추가 -->
         <div class="flex justify-between items-center pt-2 border-t border-gray-200">
           <span class="text-gray-600">사업주 부담분 합계</span>
           <span id="er_total_summary" class="font-bold text-gray-900"></span>
@@ -75,7 +75,7 @@
           <li class="flex justify-between"><span>지방소득세 (10%)</span><span id="local_tax_deduction"></span></li>
         </ul>
 
-        <!-- 사업주 부담분 -->
+        <!-- 사업주 부담분 상세 -->
         <div class="mt-6 border-t pt-4">
           <h4 class="text-base font-bold text-gray-700 mb-2">사업주 부담분</h4>
           <ul class="text-sm text-gray-600 space-y-1">
@@ -127,65 +127,51 @@
   </div>
 
   <script>
-    // ==== 모달 제어 ====
-    const verBtn   = document.getElementById('ver_btn');
-    const verModal = document.getElementById('ver_modal');
-    const verClose = document.getElementById('ver_close');
-    const verOk    = document.getElementById('ver_ok');
-    function openVerModal(){ verModal.classList.remove('hidden'); verModal.classList.add('flex'); document.body.classList.add('overflow-hidden'); }
-    function closeVerModal(){ verModal.classList.add('hidden'); verModal.classList.remove('flex'); document.body.classList.remove('overflow-hidden'); }
-    verBtn.addEventListener('click', openVerModal);
-    verClose.addEventListener('click', closeVerModal);
-    verOk.addEventListener('click', closeVerModal);
-    verModal.addEventListener('click', (e)=>{ const dialog = e.currentTarget.querySelector('[role="dialog"]'); if (!dialog.contains(e.target)) closeVerModal(); });
-    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeVerModal(); });
+    /* ===== 모달 제어 ===== */
+    const verBtn=document.getElementById('ver_btn'), verModal=document.getElementById('ver_modal');
+    const verClose=document.getElementById('ver_close'), verOk=document.getElementById('ver_ok');
+    const openVerModal=()=>{verModal.classList.remove('hidden');verModal.classList.add('flex');document.body.classList.add('overflow-hidden');};
+    const closeVerModal=()=>{verModal.classList.add('hidden');verModal.classList.remove('flex');document.body.classList.remove('overflow-hidden');};
+    verBtn.addEventListener('click',openVerModal); verClose.addEventListener('click',closeVerModal); verOk.addEventListener('click',closeVerModal);
+    verModal.addEventListener('click',e=>{const d=e.currentTarget.querySelector('[role="dialog"]');if(!d.contains(e.target))closeVerModal();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape')closeVerModal();});
 
-    // ==== 계산 로직 ====
+    /* ===== 계산 로직 ===== */
 
-    // 입력 천단위 콤마
+    // 입력 콤마
     const bindComma = el => el.addEventListener('input', e => {
-      const d = e.target.value.replace(/[^\d]/g,'');
-      e.target.value = d ? new Intl.NumberFormat('ko-KR').format(+d) : '';
+      const d = e.target.value.replace(/[^\d]/g,''); e.target.value = d ? new Intl.NumberFormat('ko-KR').format(+d) : '';
     });
-    const netInput = document.getElementById('net_pay');
-    const nonTaxInput = document.getElementById('nontax');
+    const netInput=document.getElementById('net_pay'), nonTaxInput=document.getElementById('nontax');
     bindComma(netInput); bindComma(nonTaxInput);
 
-    // 상·하한(원)
+    // 상·하한
     const NP_MIN=390_000, NP_MAX=6_170_000;
     const HI_MIN=279_266, HI_MAX=127_056_982;
 
-    // 요율(근로자부담)
+    // 요율(근로자)
     const NP_RATE=0.0450, HI_RATE=0.03545, LTC_RATE=0.1295, EI_RATE=0.0090;
+    // 요율(사업주)
+    const NP_ER_RATE=0.0450, HI_ER_RATE=0.03545, LTC_ER_RATE=0.1295, EI_ER_RATE=0.0115, WCI_ER_RATE=0.0072;
 
-    // === 사업주 부담 요율 ===
-    const NP_ER_RATE = 0.0450;  // 국민연금
-    const HI_ER_RATE = 0.03545; // 건강보험
-    const LTC_ER_RATE= 0.1295;  // 장기요양(건보료의)
-    const EI_ER_RATE = 0.0115;  // 고용보험(사업주)
-    const WCI_ER_RATE= 0.0072;  // 산재보험
+    // 기준세액(10,000천원 1인)
+    const BASE10_RAW=1_507_405;     // 원값
+    const BASE10_TRUNC=1_507_400;   // 절사값(≥1천만원 구간 앵커)
 
-    // 소득세 10,000천원 기준세액(1인) — '원값'(조견표 원자료)
-    const BASE10_1PERSON_RAW = 1_507_405;
+    // 유틸
+    const fmt=n=>new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원';
+    const num=el=>parseFloat((el.value||'0').replace(/[^\d]/g,''))||0;
+    const trunc10=v=>Math.floor(v/10)*10;
+    const clamp=(x,lo,hi)=>Math.min(Math.max(x,lo),hi);
 
-    // 공통 유틸
-    const fmt = n => new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원';
-    const num = el => parseFloat((el.value||'0').replace(/[^\d]/g,''))||0;
-    const trunc10 = v => Math.floor(v/10)*10;
-    const clamp = (x,lo,hi)=>Math.min(Math.max(x,lo),hi);
-
-    // 세액표 로딩 (v2 → 실패 시 구버전 폴백)
+    // 세액표 로딩
     let TAX_TABLE=[], tableReady=false;
     const statusEl=document.getElementById('table_status');
     async function loadTax(){
-      async function tryFetch(path){
-        const r=await fetch(path,{cache:'no-store'});
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        return r.json();
-      }
+      async function fetchJSON(p){const r=await fetch(p,{cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json();}
       try{
-        try { TAX_TABLE = await tryFetch('./simplified_tax_table_2024_1person.v2.json'); }
-        catch { TAX_TABLE = await tryFetch('./simplified_tax_table_2024_1person.json'); }
+        try{TAX_TABLE=await fetchJSON('./simplified_tax_table_2024_1person.v2.json');}
+        catch{TAX_TABLE=await fetchJSON('./simplified_tax_table_2024_1person.json');}
         TAX_TABLE.sort((a,b)=>a.min_won-b.min_won);
         tableReady=true; statusEl.textContent='세액표 로드 완료';
         document.getElementById('calc_btn').disabled=false;
@@ -193,9 +179,9 @@
     }
     loadTax();
 
-    // 표 조회
+    // 표 이진검색
     function lookupTable(x){
-      let lo=0,hi=TAX_TABLE.length-1;
+      let lo=0, hi=TAX_TABLE.length-1;
       while(lo<=hi){
         const m=(lo+hi)>>1, row=TAX_TABLE[m];
         if(x<row.min_won) hi=m-1;
@@ -205,12 +191,16 @@
       return {found:false,tax:0};
     }
 
-    // 간이세액(표 범위면 표세액, 초과구간은 조견식) — 최종 10원 절사
+    // 간이세액: 표 매칭은 "천원단위 내림" 금액으로 조회, 결과 10원 절사
+    // 표 밖(고소득) 구간은 조견식 + 앵커는 ≥1천만원일 때 BASE10_TRUNC 사용
     function simplifiedTax(amountExclNT){
-      const r=lookupTable(amountExclNT);
+      const base4table = Math.floor(amountExclNT/1000)*1000; // 핵심: 천원 스냅
+      const r = lookupTable(base4table);
       if(r.found) return trunc10(r.tax);
-      const g=amountExclNT, b10=BASE10_1PERSON_RAW;
-      let t=b10;
+
+      const g = amountExclNT;
+      const base10 = (g >= 10_000_000) ? BASE10_TRUNC : BASE10_RAW; // 요청 반영
+      let t = base10;
       if(g>10_000_000&&g<=14_000_000) t += 25_000 + 0.35*0.98*(g-10_000_000);
       else if(g>14_000_000&&g<=28_000_000) t += 1_397_000 + 0.38*0.98*(g-14_000_000);
       else if(g>28_000_000&&g<=30_000_000) t += 6_610_600 + 0.40*0.98*(g-28_000_000);
@@ -225,100 +215,86 @@
     function calc(){
       if(!tableReady){ statusEl.textContent='세액표가 아직 준비되지 않았습니다.'; return; }
       const netPay=num(netInput), nonTax=num(nonTaxInput);
-      if(netPay<=0){
-        document.getElementById('result').classList.add('hidden');
-        document.getElementById('error_message').classList.remove('hidden');
-        return;
-      }
+      if(netPay<=0){ document.getElementById('result').classList.add('hidden'); document.getElementById('error_message').classList.remove('hidden'); return; }
 
-      // 초기값: 고정점 방식으로 수렴
+      // 초기 추정
       let approx = NP_RATE + HI_RATE + (HI_RATE*LTC_RATE) + EI_RATE;
       let gross = netPay / (1 - approx);
 
       for(let i=0;i<160;i++){
-        const baseIns = Math.max(gross - nonTax, 0);          // 보수월액 = 비과세 제외
-
-        // 국민연금: 기준소득월액 = 천원단위 내림 후 상·하한
-        const npBaseRaw = Math.floor(baseIns / 1000) * 1000;
+        const baseIns = Math.max(gross - nonTax, 0);
+        const npBaseRaw = Math.floor(baseIns/1000)*1000;
         const baseNP = clamp(npBaseRaw, NP_MIN, NP_MAX);
-
-        // 건보/고용: 보수월액 상·하한
         const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
         const baseEI = baseIns;
 
-        // 4대보험(근로자, 10원 절사)
-        const np  = trunc10(baseNP * NP_RATE);
-        const hi  = trunc10(baseHI * HI_RATE);
-        const ltc = trunc10(hi * LTC_RATE);
-        const ei  = trunc10(baseEI * EI_RATE);
+        const np  = trunc10(baseNP*NP_RATE);
+        const hi  = trunc10(baseHI*HI_RATE);
+        const ltc = trunc10(hi*LTC_RATE);
+        const ei  = trunc10(baseEI*EI_RATE);
 
-        // 세금(모두 10원 절사)
-        const tax  = trunc10(simplifiedTax(baseIns));
-        const ltax = trunc10(tax * 0.1);
+        const tax = trunc10(simplifiedTax(baseIns));
+        const ltax = trunc10(tax*0.1);
 
-        const total = np + hi + ltc + ei + tax + ltax;
-        const newGross = netPay + total;               // 고정점 갱신
-        if (Math.abs(newGross - gross) < 1) { gross = newGross; break; }
-        gross = newGross;
+        const total = np+hi+ltc+ei+tax+ltax;
+        const newGross = netPay + total;
+        if(Math.abs(newGross-gross) < 1){ gross=newGross; break; }
+        gross=newGross;
       }
 
-      // 최종 표시용 재계산
+      // 최종 산출/표시
       const baseIns = Math.max(gross - nonTax, 0);
-      const npBaseRaw = Math.floor(baseIns / 1000) * 1000;
+      const npBaseRaw = Math.floor(baseIns/1000)*1000;
       const baseNP = clamp(npBaseRaw, NP_MIN, NP_MAX);
       const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
       const baseEI = baseIns;
 
-      // 근로자 부담
-      const np  = trunc10(baseNP * NP_RATE);
-      const hi  = trunc10(baseHI * HI_RATE);
-      const ltc = trunc10(hi * LTC_RATE);
-      const ei  = trunc10(baseEI * EI_RATE);
+      // 근로자
+      const np  = trunc10(baseNP*NP_RATE);
+      const hi  = trunc10(baseHI*HI_RATE);
+      const ltc = trunc10(hi*LTC_RATE);
+      const ei  = trunc10(baseEI*EI_RATE);
       const tax = trunc10(simplifiedTax(baseIns));
-      const ltax= trunc10(tax * 0.1);
-      const total = np + hi + ltc + ei + tax + ltax;
+      const ltax= trunc10(tax*0.1);
+      const total = np+hi+ltc+ei+tax+ltax;
 
-      // === 사업주 부담 계산(모두 10원 절사) ===
-      const np_er  = trunc10(baseNP * NP_ER_RATE);
-      const hi_er  = trunc10(baseHI * HI_ER_RATE);
-      const ltc_er = trunc10(hi_er * LTC_ER_RATE);   // 장기요양(사업주)도 '건보료의' 비율
-      const ei_er  = trunc10(baseEI * EI_ER_RATE);
-      const wci_er = trunc10(baseEI * WCI_ER_RATE);  // 산재보험
-      const er_total = np_er + hi_er + ltc_er + ei_er + wci_er;
+      // 사업주
+      const np_er  = trunc10(baseNP*NP_ER_RATE);
+      const hi_er  = trunc10(baseHI*HI_ER_RATE);
+      const ltc_er = trunc10(hi_er*LTC_ER_RATE);
+      const ei_er  = trunc10(baseEI*EI_ER_RATE);
+      const wci_er = trunc10(baseEI*WCI_ER_RATE);
+      const er_total = np_er+hi_er+ltc_er+ei_er+wci_er;
 
-      // === 상단 요약용 4대보험 총액(근로자+사업주) ===
-      //     국민연금 + 건강보험 + 장기요양 + 고용보험 + 산재보험의 양측 합
-      const social_total = (np + hi + ltc + ei) + (np_er + hi_er + ltc_er + ei_er + wci_er);
+      // 4대보험 총액(근로자+사업주)
+      const social_total = (np+hi+ltc+ei) + (np_er+hi_er+ltc_er+ei_er+wci_er);
 
       // 표시
-      document.getElementById('gross_pay_result').textContent        = fmt(gross);
-      document.getElementById('deductions_total_result').textContent = fmt(total);
+      document.getElementById('gross_pay_result').textContent=fmt(gross);
+      document.getElementById('deductions_total_result').textContent=fmt(total);
 
-      // ⬇️ 상단 요약 추가 표기
-      document.getElementById('er_total_summary').textContent     = fmt(er_total);
-      document.getElementById('social_total_summary').textContent = fmt(social_total);
+      document.getElementById('er_total_summary').textContent=fmt(er_total);
+      document.getElementById('social_total_summary').textContent=fmt(social_total);
 
-      document.getElementById('np_deduction').textContent  = fmt(np);
-      document.getElementById('hi_deduction').textContent  = fmt(hi);
-      document.getElementById('ltc_deduction').textContent = fmt(ltc);
-      document.getElementById('ei_deduction').textContent  = fmt(ei);
-      document.getElementById('tax_deduction').textContent = fmt(tax);
-      document.getElementById('local_tax_deduction').textContent = fmt(ltax);
+      document.getElementById('np_deduction').textContent=fmt(np);
+      document.getElementById('hi_deduction').textContent=fmt(hi);
+      document.getElementById('ltc_deduction').textContent=fmt(ltc);
+      document.getElementById('ei_deduction').textContent=fmt(ei);
+      document.getElementById('tax_deduction').textContent=fmt(tax);
+      document.getElementById('local_tax_deduction').textContent=fmt(ltax);
 
-      // 사업주 부담 표시(세부)
-      document.getElementById('np_er').textContent  = fmt(np_er);
-      document.getElementById('hi_er').textContent  = fmt(hi_er);
-      document.getElementById('ltc_er').textContent = fmt(ltc_er);
-      document.getElementById('ei_er').textContent  = fmt(ei_er);
-      document.getElementById('wci_er').textContent = fmt(wci_er);
-      document.getElementById('er_total').textContent = fmt(er_total);
+      document.getElementById('np_er').textContent=fmt(np_er);
+      document.getElementById('hi_er').textContent=fmt(hi_er);
+      document.getElementById('ltc_er').textContent=fmt(ltc_er);
+      document.getElementById('ei_er').textContent=fmt(ei_er);
+      document.getElementById('wci_er').textContent=fmt(wci_er);
+      document.getElementById('er_total').textContent=fmt(er_total);
 
-      // 기준 금액 표시
-      document.getElementById('base_ins').textContent = fmt(baseIns);
-      document.getElementById('base_np').textContent  = fmt(baseNP);
-      document.getElementById('base_hi').textContent  = fmt(baseHI);
-      document.getElementById('base_ei').textContent  = fmt(baseEI);
-      document.getElementById('base_tax').textContent = fmt(baseIns);
+      document.getElementById('base_ins').textContent=fmt(baseIns);
+      document.getElementById('base_np').textContent=fmt(baseNP);
+      document.getElementById('base_hi').textContent=fmt(baseHI);
+      document.getElementById('base_ei').textContent=fmt(baseEI);
+      document.getElementById('base_tax').textContent=fmt(baseIns);
 
       document.getElementById('result').classList.remove('hidden');
       document.getElementById('error_message').classList.add('hidden');
