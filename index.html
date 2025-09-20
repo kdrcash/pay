@@ -12,10 +12,10 @@
   <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
     <h1 class="text-3xl font-bold text-gray-800 text-center mb-4">네트급여 계산기</h1>
 
-    <!-- 버전/안내: Ver 1.0 버튼 클릭 시 모달 표시 -->
+    <!-- 버전/안내: Ver 1.0 버튼 클릭 시 모달 표시 (플러스 아이콘 제거) -->
     <p class="text-xs text-gray-500 text-center mb-6">
       <button id="ver_btn" type="button"
-              class="inline-flex items-center gap-1 text-blue-600 font-semibold underline hover:text-blue-800">
+              class="inline-flex items-center text-blue-600 font-semibold underline hover:text-blue-800">
         Ver 1.0
       </button>
     </p>
@@ -40,7 +40,7 @@
             disabled>계산하기</button>
 
     <div id="result" class="bg-gray-50 rounded-lg p-6 hidden">
-      <h2 class="text-xl font-bold text-gray-800 mb-4">결과</h2>
+      <h2 class="text-xl font-bold text-gray-800 mb-4">계산 결과</h2>
       <div class="space-y-3">
         <div class="flex justify-between items-center pb-2 border-b border-gray-200">
           <span class="text-gray-600">지급총액</span>
@@ -50,7 +50,7 @@
           <span class="text-gray-600">공제액 합계</span>
           <span id="deductions_total_result" class="font-bold text-gray-900"></span>
         </div>
-        <!-- 상단 요약: 사업주 부담/4대보험 총액 -->
+        <!-- 상단 요약 내 ‘사업주 부담분 합계’ & ‘4대보험 총액(근로자+사업주)’ -->
         <div class="flex justify-between items-center pt-2 border-t border-gray-200">
           <span class="text-gray-600">사업주 부담분 합계</span>
           <span id="er_total_summary" class="font-bold text-gray-900"></span>
@@ -101,7 +101,7 @@
     <div id="error_message" class="text-center text-red-500 mt-4 hidden">유효한 금액을 입력해 주세요.</div>
   </div>
 
-  <!-- Ver 1.0 규칙 모달 (내용 개선 + 상·하한 표기) -->
+  <!-- Ver 1.0 규칙 모달 (보기 좋게 정리 + 상·하한 표시) -->
   <div id="ver_modal" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-black/50"></div>
     <div role="dialog" aria-modal="true"
@@ -113,44 +113,27 @@
                 aria-label="닫기">✕</button>
       </div>
 
-      <!-- 보기좋게 정리된 규칙 -->
-      <div class="text-sm text-gray-700 space-y-3">
-        <ol class="list-decimal list-inside space-y-1">
-          <li>2024년 간이세액표(1인)를 사용합니다. 표 범위 밖은 조견식(구간별 공식)으로 계산합니다.</li>
-          <li>모든 세목·보험은 <b>비과세 제외 금액</b>(보수월액)을 기준으로 산정합니다.</li>
-          <li>국민연금 기준소득월액은 <b>1,000원 단위 내림</b> 후 상·하한을 적용합니다.</li>
-          <li>건강보험·장기요양·고용보험도 보수월액 상·하한을 적용합니다.</li>
-          <li>장기요양보험료는 건강보험료의 <b>12.95%</b>입니다.</li>
-          <li>모든 항목은 <b>10원 절사</b>로 처리합니다.</li>
-        </ol>
+      <div class="text-sm text-gray-700 space-y-4">
+        <div>
+          <h4 class="font-semibold text-gray-900 mb-1">적용 규칙</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>2024 간이세액표(1인) 적용</li>
+            <li>4대보험 상·하한 반영</li>
+            <li>장기요양보험료 = 건강보험료 × <b>12.95%</b></li>
+            <li>모든 세목·보험 <b>10원 절사</b></li>
+            <li>세목·보험 산정 기준: <b>비과세 제외 금액</b></li>
+            <li>국민연금 기준소득: <b>천원단위</b>로 내림</li>
+          </ul>
+        </div>
 
-        <!-- 상·하한 안내 (코드 상수와 동기화) -->
-        <div class="mt-4">
-          <h4 class="text-sm font-bold text-gray-800 mb-2">상·하한 (2024 기준)</h4>
-          <div class="overflow-hidden rounded-lg border border-gray-200">
-            <table class="w-full text-sm">
-              <thead class="bg-gray-50 text-gray-600">
-                <tr>
-                  <th class="text-left px-3 py-2">구분</th>
-                  <th class="text-right px-3 py-2">하한</th>
-                  <th class="text-right px-3 py-2">상한</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr>
-                  <td class="px-3 py-2">국민연금 기준소득</td>
-                  <td class="px-3 py-2 text-right"><span id="np_min_txt">-</span></td>
-                  <td class="px-3 py-2 text-right"><span id="np_max_txt">-</span></td>
-                </tr>
-                <tr>
-                  <td class="px-3 py-2">건강보험 보수월액</td>
-                  <td class="px-3 py-2 text-right"><span id="hi_min_txt">-</span></td>
-                  <td class="px-3 py-2 text-right"><span id="hi_max_txt">-</span></td>
-                </tr>
-              </tbody>
-            </table>
+        <div>
+          <h4 class="font-semibold text-gray-900 mb-2">상·하한 (현재 계산식 사용값)</h4>
+          <div class="rounded-lg bg-gray-50 border border-gray-200 p-3 space-y-1 text-[13px]">
+            <div class="flex justify-between"><span>국민연금 기준소득월액 하한</span><span id="np_min_label"></span></div>
+            <div class="flex justify-between"><span>국민연금 기준소득월액 상한</span><span id="np_max_label"></span></div>
+            <div class="flex justify-between"><span>건강보험 보수월액 하한</span><span id="hi_min_label"></span></div>
+            <div class="flex justify-between"><span>건강보험 보수월액 상한</span><span id="hi_max_label"></span></div>
           </div>
-          <p class="mt-2 text-[11px] text-gray-500">※ 본 표의 금액은 계산 로직의 상수값과 동일하게 반영됩니다.</p>
         </div>
       </div>
 
@@ -167,18 +150,24 @@
     const verModal = document.getElementById('ver_modal');
     const verClose = document.getElementById('ver_close');
     const verOk    = document.getElementById('ver_ok');
-    function openVerModal(){
-      // 모달 표 상·하한 값을 코드 상수와 동기화해 채움
-      const nf = new Intl.NumberFormat('ko-KR');
-      const setTxt = (id, v) => document.getElementById(id).textContent = nf.format(v) + ' 원';
-      setTxt('np_min_txt', NP_MIN);
-      setTxt('np_max_txt', NP_MAX);
-      setTxt('hi_min_txt', HI_MIN);
-      setTxt('hi_max_txt', HI_MAX);
 
+    function fmt(n){ return new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원'; }
+
+    function fillVerModalBounds(){
+      // 상·하한을 현재 스크립트 상수에서 가져와 표시
+      document.getElementById('np_min_label').textContent = fmt(NP_MIN);
+      document.getElementById('np_max_label').textContent = fmt(NP_MAX);
+      document.getElementById('hi_min_label').textContent = fmt(HI_MIN);
+      document.getElementById('hi_max_label').textContent = fmt(HI_MAX);
+    }
+
+    function openVerModal(){
+      fillVerModalBounds();
       verModal.classList.remove('hidden'); verModal.classList.add('flex'); document.body.classList.add('overflow-hidden');
     }
-    function closeVerModal(){ verModal.classList.add('hidden'); verModal.classList.remove('flex'); document.body.classList.remove('overflow-hidden'); }
+    function closeVerModal(){
+      verModal.classList.add('hidden'); verModal.classList.remove('flex'); document.body.classList.remove('overflow-hidden');
+    }
     verBtn.addEventListener('click', openVerModal);
     verClose.addEventListener('click', closeVerModal);
     verOk.addEventListener('click', closeVerModal);
@@ -196,7 +185,7 @@
     const nonTaxInput = document.getElementById('nontax');
     bindComma(netInput); bindComma(nonTaxInput);
 
-    // 상·하한(원)  ⬅︎ 이 값이 모달에도 그대로 표시됩니다.
+    // 상·하한(원) — 최근 코드 기준
     const NP_MIN=400_000, NP_MAX=6_370_000;
     const HI_MIN=279_266, HI_MAX=127_056_982;
 
@@ -210,11 +199,10 @@
     const EI_ER_RATE = 0.0115;  // 고용보험(사업주)
     const WCI_ER_RATE= 0.0072;  // 산재보험
 
-    // 소득세 10,000천원 기준세액(1인) — '원값'(조견표 원자료)
+    // 소득세 10,000천원 기준세액(1인) — '원값'
     const BASE10_1PERSON_RAW = 1_507_405;
 
     // 공통 유틸
-    const fmt = n => new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원';
     const num = el => parseFloat((el.value||'0').replace(/[^\d]/g,''))||0;
     const trunc10 = v => Math.floor(v/10)*10;
     const clamp = (x,lo,hi)=>Math.min(Math.max(x,lo),hi);
@@ -326,19 +314,21 @@
       // === 사업주 부담 계산(모두 10원 절사) ===
       const np_er  = trunc10(baseNP * NP_ER_RATE);
       const hi_er  = trunc10(baseHI * HI_ER_RATE);
-      const ltc_er = trunc10(hi_er * LTC_ER_RATE);
+      const ltc_er = trunc10(hi_er * LTC_ER_RATE);   // 장기요양(사업주)도 '건보료의' 비율
       const ei_er  = trunc10(baseEI * EI_ER_RATE);
-      const wci_er = trunc10(baseEI * WCI_ER_RATE);
+      const wci_er = trunc10(baseEI * WCI_ER_RATE);  // 산재보험
       const er_total = np_er + hi_er + ltc_er + ei_er + wci_er;
 
-      // 상단 요약용 4대보험 총액(근로자+사업주)
+      // === 상단 요약용 4대보험 총액(근로자+사업주) ===
       const social_total = (np + hi + ltc + ei) + (np_er + hi_er + ltc_er + ei_er + wci_er);
 
       // 표시
       document.getElementById('gross_pay_result').textContent        = fmt(gross);
       document.getElementById('deductions_total_result').textContent = fmt(total);
-      document.getElementById('er_total_summary').textContent        = fmt(er_total);
-      document.getElementById('social_total_summary').textContent    = fmt(social_total);
+
+      // 상단 요약 추가 표기
+      document.getElementById('er_total_summary').textContent     = fmt(er_total);
+      document.getElementById('social_total_summary').textContent = fmt(social_total);
 
       document.getElementById('np_deduction').textContent  = fmt(np);
       document.getElementById('hi_deduction').textContent  = fmt(hi);
