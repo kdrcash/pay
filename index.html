@@ -66,6 +66,19 @@
           <li class="flex justify-between"><span>지방소득세 (10%)</span><span id="local_tax_deduction"></span></li>
         </ul>
 
+        <!-- 사업주 부담분 -->
+        <div class="mt-6 border-t pt-4">
+          <h4 class="text-base font-bold text-gray-700 mb-2">사업주 부담분</h4>
+          <ul class="text-sm text-gray-600 space-y-1">
+            <li class="flex justify-between"><span>국민연금 (4.5%)</span><span id="np_er"></span></li>
+            <li class="flex justify-between"><span>건강보험 (3.545%)</span><span id="hi_er"></span></li>
+            <li class="flex justify-between"><span>장기요양 (건보료의 12.95%)</span><span id="ltc_er"></span></li>
+            <li class="flex justify-between"><span>고용보험 (1.15%)</span><span id="ei_er"></span></li>
+            <li class="flex justify-between"><span>산재보험 (0.72%)</span><span id="wci_er"></span></li>
+            <li class="flex justify-between font-semibold pt-1"><span>사업주 부담 합계</span><span id="er_total"></span></li>
+          </ul>
+        </div>
+
         <details class="mt-3 text-[11px] text-gray-500">
           <summary class="cursor-pointer">기준 금액(보수월액/세액표 기준) 보기</summary>
           <div class="mt-2 space-y-1">
@@ -84,29 +97,22 @@
 
   <!-- Ver 1.0 규칙 모달 -->
   <div id="ver_modal" class="fixed inset-0 z-50 hidden items-center justify-center">
-    <!-- overlay -->
     <div class="absolute inset-0 bg-black/50"></div>
-    <!-- dialog -->
     <div role="dialog" aria-modal="true"
          class="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl p-6">
       <div class="flex items-start justify-between mb-3">
         <h3 class="text-lg font-bold text-gray-800">버전 1.0 • 계산 규칙</h3>
         <button id="ver_close"
                 class="p-2 -m-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-label="닫기">
-          ✕
-        </button>
+                aria-label="닫기">✕</button>
       </div>
       <div class="text-sm text-gray-700 space-y-2">
         <p>2024 간이세액표(1인) + 4대보험 상·하한 + 장기요양 + <b>10원 절사</b></p>
-        <p>세목·보험 모두 <b>비과세 제외 금액</b> 기준</p>
-        <p>국민연금 기준소득은 <b>천원단위</b></p>
+        <p>(세목·보험 모두 <b>비과세 제외 금액</b> 기준 / 국민연금 기준소득은 <b>천원단위</b>)</p>
       </div>
       <div class="mt-5 flex justify-end">
         <button id="ver_ok"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-          확인
-        </button>
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">확인</button>
       </div>
     </div>
   </div>
@@ -117,31 +123,15 @@
     const verModal = document.getElementById('ver_modal');
     const verClose = document.getElementById('ver_close');
     const verOk    = document.getElementById('ver_ok');
-
-    function openVerModal(){
-      verModal.classList.remove('hidden');
-      verModal.classList.add('flex');
-      document.body.classList.add('overflow-hidden');
-    }
-    function closeVerModal(){
-      verModal.classList.add('hidden');
-      verModal.classList.remove('flex');
-      document.body.classList.remove('overflow-hidden');
-    }
-
+    function openVerModal(){ verModal.classList.remove('hidden'); verModal.classList.add('flex'); document.body.classList.add('overflow-hidden'); }
+    function closeVerModal(){ verModal.classList.add('hidden'); verModal.classList.remove('flex'); document.body.classList.remove('overflow-hidden'); }
     verBtn.addEventListener('click', openVerModal);
     verClose.addEventListener('click', closeVerModal);
     verOk.addEventListener('click', closeVerModal);
-    // 바깥(overlay) 클릭 시 닫기
-    verModal.addEventListener('click', (e)=>{
-      // dialog 외부 클릭만 처리
-      const dialog = e.currentTarget.querySelector('[role="dialog"]');
-      if (!dialog.contains(e.target)) closeVerModal();
-    });
-    // ESC 닫기
+    verModal.addEventListener('click', (e)=>{ const dialog = e.currentTarget.querySelector('[role="dialog"]'); if (!dialog.contains(e.target)) closeVerModal(); });
     document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeVerModal(); });
 
-    // ==== 아래부터 기존 계산 로직 ====
+    // ==== 계산 로직 ====
 
     // 입력 천단위 콤마
     const bindComma = el => el.addEventListener('input', e => {
@@ -158,6 +148,13 @@
 
     // 요율(근로자부담)
     const NP_RATE=0.0450, HI_RATE=0.03545, LTC_RATE=0.1295, EI_RATE=0.0090;
+
+    // === 사업주 부담 요율 ===
+    const NP_ER_RATE = 0.0450;  // 국민연금
+    const HI_ER_RATE = 0.03545; // 건강보험
+    const LTC_ER_RATE= 0.1295;  // 장기요양(건보료의)
+    const EI_ER_RATE = 0.0115;  // 고용보험(사업주)
+    const WCI_ER_RATE= 0.0072;  // 산재보험
 
     // 소득세 10,000천원 기준세액(1인) — '원값'(조견표 원자료)
     const BASE10_1PERSON_RAW = 1_507_405;
@@ -203,7 +200,6 @@
     function simplifiedTax(amountExclNT){
       const r=lookupTable(amountExclNT);
       if(r.found) return trunc10(r.tax);
-
       const g=amountExclNT, b10=BASE10_1PERSON_RAW;
       let t=b10;
       if(g>10_000_000&&g<=14_000_000) t += 25_000 + 0.35*0.98*(g-10_000_000);
@@ -241,10 +237,10 @@
         const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
         const baseEI = baseIns;
 
-        // 4대보험(10원 절사)
+        // 4대보험(근로자, 10원 절사)
         const np  = trunc10(baseNP * NP_RATE);
         const hi  = trunc10(baseHI * HI_RATE);
-        const ltc = trunc10(hi * LTC_RATE);
+        const ltc = trunc10(hi * LTC_RATE);      // 장기요양은 '건보료의' 비율
         const ei  = trunc10(baseEI * EI_RATE);
 
         // 세금(모두 10원 절사)
@@ -257,13 +253,14 @@
         gross = newGross;
       }
 
-      // 최종 표시
+      // 최종 표시용 재계산
       const baseIns = Math.max(gross - nonTax, 0);
       const npBaseRaw = Math.floor(baseIns / 1000) * 1000;
       const baseNP = clamp(npBaseRaw, NP_MIN, NP_MAX);
       const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
       const baseEI = baseIns;
 
+      // 근로자 부담
       const np  = trunc10(baseNP * NP_RATE);
       const hi  = trunc10(baseHI * HI_RATE);
       const ltc = trunc10(hi * LTC_RATE);
@@ -272,16 +269,34 @@
       const ltax= trunc10(tax * 0.1);
       const total = np + hi + ltc + ei + tax + ltax;
 
+      // === 사업주 부담 계산(모두 10원 절사) ===
+      const np_er  = trunc10(baseNP * NP_ER_RATE);
+      const hi_er  = trunc10(baseHI * HI_ER_RATE);
+      const ltc_er = trunc10(hi_er * LTC_ER_RATE);   // 장기요양(사업주)도 '건보료의' 비율
+      const ei_er  = trunc10(baseEI * EI_ER_RATE);
+      const wci_er = trunc10(baseEI * WCI_ER_RATE);  // 산재보험
+      const er_total = np_er + hi_er + ltc_er + ei_er + wci_er;
+
+      // 표시
       document.getElementById('gross_pay_result').textContent        = fmt(gross);
       document.getElementById('deductions_total_result').textContent = fmt(total);
-      document.getElementById('np_deduction').textContent            = fmt(np);
-      document.getElementById('hi_deduction').textContent            = fmt(hi);
-      document.getElementById('ltc_deduction').textContent           = fmt(ltc);
-      document.getElementById('ei_deduction').textContent            = fmt(ei);
-      document.getElementById('tax_deduction').textContent           = fmt(tax);
-      document.getElementById('local_tax_deduction').textContent     = fmt(ltax);
 
-      // 검증용 기준 표시
+      document.getElementById('np_deduction').textContent  = fmt(np);
+      document.getElementById('hi_deduction').textContent  = fmt(hi);
+      document.getElementById('ltc_deduction').textContent = fmt(ltc);
+      document.getElementById('ei_deduction').textContent  = fmt(ei);
+      document.getElementById('tax_deduction').textContent = fmt(tax);
+      document.getElementById('local_tax_deduction').textContent = fmt(ltax);
+
+      // 사업주 부담 표시
+      document.getElementById('np_er').textContent  = fmt(np_er);
+      document.getElementById('hi_er').textContent  = fmt(hi_er);
+      document.getElementById('ltc_er').textContent = fmt(ltc_er);
+      document.getElementById('ei_er').textContent  = fmt(ei_er);
+      document.getElementById('wci_er').textContent = fmt(wci_er);
+      document.getElementById('er_total').textContent = fmt(er_total);
+
+      // 기준 금액 표시
       document.getElementById('base_ins').textContent = fmt(baseIns);
       document.getElementById('base_np').textContent  = fmt(baseNP);
       document.getElementById('base_hi').textContent  = fmt(baseHI);
@@ -294,4 +309,3 @@
   </script>
 </body>
 </html>
-
