@@ -155,8 +155,8 @@
     const NP_ER_RATE=0.0450, HI_ER_RATE=0.03545, LTC_ER_RATE=0.1295, EI_ER_RATE=0.0115, WCI_ER_RATE=0.0072;
 
     // 기준세액(10,000천원 1인)
-    const BASE10_RAW=1_507_405;     // 원값
-    const BASE10_TRUNC=1_507_400;   // 절사값(≥1천만원 구간 앵커)
+    const BASE10_RAW = 1_507_405;   // 원값(표 내부용 레퍼런스)
+    const BASE10_TRUNC = 1_507_400; // 절사값(≥1천만원 구간 앵커)
 
     // 유틸
     const fmt=n=>new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원';
@@ -179,27 +179,26 @@
     }
     loadTax();
 
-    // 표 이진검색
-    function lookupTable(x){
-      let lo=0, hi=TAX_TABLE.length-1;
-      while(lo<=hi){
+    // ✅ 엑셀 방식: min_won ≤ x 인 마지막 행을 반환
+    function lookupTableByMin(x) {
+      let lo=0, hi=TAX_TABLE.length-1, ans=-1;
+      while (lo<=hi) {
         const m=(lo+hi)>>1, row=TAX_TABLE[m];
-        if(x<row.min_won) hi=m-1;
-        else if(x>=row.max_won) lo=m+1;
-        else return {found:true,tax:+row.tax||0};
+        if (row.min_won <= x) { ans=m; lo=m+1; }
+        else { hi=m-1; }
       }
-      return {found:false,tax:0};
+      return (ans>=0) ? {found:true, tax:+TAX_TABLE[ans].tax||0} : {found:false, tax:0};
     }
 
-    // 간이세액: 표 매칭은 "천원단위 내림" 금액으로 조회, 결과 10원 절사
-    // 표 밖(고소득) 구간은 조견식 + 앵커는 ≥1천만원일 때 BASE10_TRUNC 사용
+    // 간이세액: 표 조회는 "천원 단위 내림" 금액으로, 표 안이면 그대로(최종 10원 절사)
+    // 표 밖(고소득) 구간만 조견식 사용. ≥1천만원 앵커는 1,507,400(절사값).
     function simplifiedTax(amountExclNT){
-      const base4table = Math.floor(amountExclNT/1000)*1000; // 핵심: 천원 스냅
-      const r = lookupTable(base4table);
-      if(r.found) return trunc10(r.tax);
+      const snapK = Math.floor(amountExclNT/1000)*1000;
+      const r = lookupTableByMin(snapK);
+      if (r.found) return trunc10(r.tax);
 
       const g = amountExclNT;
-      const base10 = (g >= 10_000_000) ? BASE10_TRUNC : BASE10_RAW; // 요청 반영
+      const base10 = (g >= 10_000_000) ? BASE10_TRUNC : BASE10_RAW;
       let t = base10;
       if(g>10_000_000&&g<=14_000_000) t += 25_000 + 0.35*0.98*(g-10_000_000);
       else if(g>14_000_000&&g<=28_000_000) t += 1_397_000 + 0.38*0.98*(g-14_000_000);
