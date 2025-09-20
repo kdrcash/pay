@@ -138,14 +138,14 @@
 
     /* ===== 계산 로직 ===== */
 
-    // 입력 콤마
+    // 입력 콤마 포맷
     const bindComma = el => el.addEventListener('input', e => {
       const d = e.target.value.replace(/[^\d]/g,''); e.target.value = d ? new Intl.NumberFormat('ko-KR').format(+d) : '';
     });
     const netInput=document.getElementById('net_pay'), nonTaxInput=document.getElementById('nontax');
     bindComma(netInput); bindComma(nonTaxInput);
 
-    // 상·하한
+    // 상·하한(원)
     const NP_MIN=390_000, NP_MAX=6_170_000;
     const HI_MIN=279_266, HI_MAX=127_056_982;
 
@@ -154,7 +154,7 @@
     // 요율(사업주)
     const NP_ER_RATE=0.0450, HI_ER_RATE=0.03545, LTC_ER_RATE=0.1295, EI_ER_RATE=0.0115, WCI_ER_RATE=0.0072;
 
-    // 기준세액(10,000천원 1인)
+    // 10,000천원 기준세액(1인)
     const BASE10_RAW = 1_507_405;   // 원값(표 내부 참조)
     const BASE10_TRUNC = 1_507_400; // 절사값(≥1천만원 구간 앵커)
 
@@ -179,7 +179,7 @@
     }
     loadTax();
 
-    // 엑셀 방식: min_won ≤ x 인 마지막 행 index
+    // 엑셀식: min_won ≤ x 인 마지막 행 index
     function rowIndexByMin(x){
       let lo=0, hi=TAX_TABLE.length-1, ans=-1;
       while(lo<=hi){
@@ -191,8 +191,7 @@
     }
     const taxFromRow = idx => (idx>=0? (+TAX_TABLE[idx].tax||0) : 0);
 
-    // 간이세액: 표 조회는 "천원 내림" 금액으로, 표 안이면 그대로(최종 10원 절사)
-    // 표 밖(고소득) 구간만 조견식. ≥1천만원 앵커는 1,507,400(절사값).
+    // 간이세액(표 안: 표세액, 표 밖: 조견식) — 최종 10원 절사
     function simplifiedTax(amountExclNT){
       const snapK = Math.floor(amountExclNT/1000)*1000;
       const idx = rowIndexByMin(snapK);
@@ -210,7 +209,7 @@
       return trunc10(t);
     }
 
-    // 한 번의 총계산(주어진 gross)
+    // 한 번의 총계산
     function computeAll(gross, nonTax){
       const baseIns = Math.max(gross - nonTax, 0);
       const snapK = Math.floor(baseIns/1000)*1000;
@@ -270,7 +269,7 @@
       return sol;
     }
 
-    // (2) 절사로 생기는 plateau: 10원 단위로 우측 끝까지 전진
+    // (2) 절사 plateau: 10원 단위로 우측 끝까지 전진
     function searchRightPlateau(sol, netPay, nonTax) {
       let best = sol;
       for (let step = 10; step <= 300_000; step += 10) {
@@ -292,7 +291,7 @@
       const guess = netPay / (1 - approx);
       let sol = solveGross(netPay, nonTax, guess);
 
-      // 우측 경계 보정 + 절사 plateau 우측 끝
+      // 우측 경계 + 절사 plateau 우측 끝
       sol = preferRightEdge(sol, netPay, nonTax);
       sol = searchRightPlateau(sol, netPay, nonTax);
 
