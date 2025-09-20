@@ -53,7 +53,7 @@
           <span class="text-gray-600">공제액 합계</span>
           <span id="deductions_total_result" class="font-bold text-gray-900"></span>
         </div>
-        <!-- 상단 요약: 추가 -->
+        <!-- 상단 요약 -->
         <div class="flex justify-between items-center pt-2 border-t border-gray-200">
           <span class="text-gray-600">사업주 부담분 합계</span>
           <span id="er_total_summary" class="font-bold text-gray-900"></span>
@@ -189,7 +189,6 @@
       }
       return ans;
     }
-    // 행→세액
     const taxFromRow = idx => (idx>=0? (+TAX_TABLE[idx].tax||0) : 0);
 
     // 간이세액: 표 조회는 "천원 내림" 금액으로, 표 안이면 그대로(최종 10원 절사)
@@ -211,7 +210,7 @@
       return trunc10(t);
     }
 
-    // 한 번의 총계산(주어진 gross 에 대해 모든 금액 산출)
+    // 한 번의 총계산(주어진 gross)
     function computeAll(gross, nonTax){
       const baseIns = Math.max(gross - nonTax, 0);
       const snapK = Math.floor(baseIns/1000)*1000;
@@ -257,21 +256,29 @@
       return computeAll(gross, nonTax);
     }
 
-    // 우측 경계(plateau) 우선 채택
+    // (1) 세액표 구간: 우측 경계 우선
     function preferRightEdge(sol, netPay, nonTax){
       const idx = rowIndexByMin(sol.snapK);
-      if (idx < 0 || idx+1 >= TAX_TABLE.length) return sol; // 마지막 행이면 종료
-
+      if (idx < 0 || idx+1 >= TAX_TABLE.length) return sol;
       const nextMin = TAX_TABLE[idx+1].min_won;
-      if (sol.snapK >= nextMin) return sol; // 이미 다음 구간이면 종료
-
-      // 다음 구간 해를 시도: 현재보다 조금 큰 초기값으로 재수렴
+      if (sol.snapK >= nextMin) return sol;
       const alt = solveGross(netPay, nonTax, sol.gross + 30_000);
-      const EPS = 10; // 10원 절사 허용오차
+      const EPS = 10;
       if (Math.abs(alt.net - netPay) <= EPS && alt.snapK >= nextMin && alt.gross > sol.gross) {
         return alt;
       }
       return sol;
+    }
+
+    // (2) 절사로 생기는 plateau: 10원 단위로 우측 끝까지 전진
+    function searchRightPlateau(sol, netPay, nonTax) {
+      let best = sol;
+      for (let step = 10; step <= 300_000; step += 10) {
+        const alt = computeAll(sol.gross + step, nonTax);
+        if (alt.net === netPay) { best = alt; continue; }
+        if (alt.net > netPay) break;
+      }
+      return best;
     }
 
     // 계산
@@ -280,13 +287,14 @@
       const netPay=num(netInput), nonTax=num(nonTaxInput);
       if(netPay<=0){ document.getElementById('result').classList.add('hidden'); document.getElementById('error_message').classList.remove('hidden'); return; }
 
-      // 초기 추정치로 수렴
+      // 초기 추정 → 수렴
       const approx = NP_RATE + HI_RATE + (HI_RATE*LTC_RATE) + EI_RATE;
       const guess = netPay / (1 - approx);
       let sol = solveGross(netPay, nonTax, guess);
 
-      // 우측 경계 우선 규칙 적용
+      // 우측 경계 보정 + 절사 plateau 우측 끝
       sol = preferRightEdge(sol, netPay, nonTax);
+      sol = searchRightPlateau(sol, netPay, nonTax);
 
       // 표시
       document.getElementById('gross_pay_result').textContent = fmt(sol.gross);
