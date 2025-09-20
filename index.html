@@ -155,7 +155,7 @@
     const NP_ER_RATE=0.0450, HI_ER_RATE=0.03545, LTC_ER_RATE=0.1295, EI_ER_RATE=0.0115, WCI_ER_RATE=0.0072;
 
     // 기준세액(10,000천원 1인)
-    const BASE10_RAW = 1_507_405;   // 원값(표 내부용 레퍼런스)
+    const BASE10_RAW = 1_507_405;   // 원값(표 내부 참조)
     const BASE10_TRUNC = 1_507_400; // 절사값(≥1천만원 구간 앵커)
 
     // 유틸
@@ -179,23 +179,25 @@
     }
     loadTax();
 
-    // ✅ 엑셀 방식: min_won ≤ x 인 마지막 행을 반환
-    function lookupTableByMin(x) {
+    // 엑셀 방식: min_won ≤ x 인 마지막 행 index
+    function rowIndexByMin(x){
       let lo=0, hi=TAX_TABLE.length-1, ans=-1;
-      while (lo<=hi) {
-        const m=(lo+hi)>>1, row=TAX_TABLE[m];
-        if (row.min_won <= x) { ans=m; lo=m+1; }
-        else { hi=m-1; }
+      while(lo<=hi){
+        const m=(lo+hi)>>1;
+        if(TAX_TABLE[m].min_won <= x){ ans=m; lo=m+1; }
+        else hi=m-1;
       }
-      return (ans>=0) ? {found:true, tax:+TAX_TABLE[ans].tax||0} : {found:false, tax:0};
+      return ans;
     }
+    // 행→세액
+    const taxFromRow = idx => (idx>=0? (+TAX_TABLE[idx].tax||0) : 0);
 
-    // 간이세액: 표 조회는 "천원 단위 내림" 금액으로, 표 안이면 그대로(최종 10원 절사)
-    // 표 밖(고소득) 구간만 조견식 사용. ≥1천만원 앵커는 1,507,400(절사값).
+    // 간이세액: 표 조회는 "천원 내림" 금액으로, 표 안이면 그대로(최종 10원 절사)
+    // 표 밖(고소득) 구간만 조견식. ≥1천만원 앵커는 1,507,400(절사값).
     function simplifiedTax(amountExclNT){
       const snapK = Math.floor(amountExclNT/1000)*1000;
-      const r = lookupTableByMin(snapK);
-      if (r.found) return trunc10(r.tax);
+      const idx = rowIndexByMin(snapK);
+      if (idx >= 0) return trunc10(taxFromRow(idx));
 
       const g = amountExclNT;
       const base10 = (g >= 10_000_000) ? BASE10_TRUNC : BASE10_RAW;
@@ -209,42 +211,12 @@
       return trunc10(t);
     }
 
-    // 계산
-    document.getElementById('calc_btn').addEventListener('click', calc);
-    function calc(){
-      if(!tableReady){ statusEl.textContent='세액표가 아직 준비되지 않았습니다.'; return; }
-      const netPay=num(netInput), nonTax=num(nonTaxInput);
-      if(netPay<=0){ document.getElementById('result').classList.add('hidden'); document.getElementById('error_message').classList.remove('hidden'); return; }
-
-      // 초기 추정
-      let approx = NP_RATE + HI_RATE + (HI_RATE*LTC_RATE) + EI_RATE;
-      let gross = netPay / (1 - approx);
-
-      for(let i=0;i<160;i++){
-        const baseIns = Math.max(gross - nonTax, 0);
-        const npBaseRaw = Math.floor(baseIns/1000)*1000;
-        const baseNP = clamp(npBaseRaw, NP_MIN, NP_MAX);
-        const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
-        const baseEI = baseIns;
-
-        const np  = trunc10(baseNP*NP_RATE);
-        const hi  = trunc10(baseHI*HI_RATE);
-        const ltc = trunc10(hi*LTC_RATE);
-        const ei  = trunc10(baseEI*EI_RATE);
-
-        const tax = trunc10(simplifiedTax(baseIns));
-        const ltax = trunc10(tax*0.1);
-
-        const total = np+hi+ltc+ei+tax+ltax;
-        const newGross = netPay + total;
-        if(Math.abs(newGross-gross) < 1){ gross=newGross; break; }
-        gross=newGross;
-      }
-
-      // 최종 산출/표시
+    // 한 번의 총계산(주어진 gross 에 대해 모든 금액 산출)
+    function computeAll(gross, nonTax){
       const baseIns = Math.max(gross - nonTax, 0);
-      const npBaseRaw = Math.floor(baseIns/1000)*1000;
-      const baseNP = clamp(npBaseRaw, NP_MIN, NP_MAX);
+      const snapK = Math.floor(baseIns/1000)*1000;
+
+      const baseNP = clamp(snapK, NP_MIN, NP_MAX);
       const baseHI = clamp(baseIns, HI_MIN, HI_MAX);
       const baseEI = baseIns;
 
@@ -265,39 +237,87 @@
       const wci_er = trunc10(baseEI*WCI_ER_RATE);
       const er_total = np_er+hi_er+ltc_er+ei_er+wci_er;
 
-      // 4대보험 총액(근로자+사업주)
-      const social_total = (np+hi+ltc+ei) + (np_er+hi_er+ltc_er+ei_er+wci_er);
+      const social_total = (np+hi+ltc+ei) + er_total;
+      const net = gross - total;
+
+      return {gross, net, baseIns, snapK, baseNP, baseHI, baseEI,
+              np, hi, ltc, ei, tax, ltax, total,
+              np_er, hi_er, ltc_er, ei_er, wci_er, er_total, social_total};
+    }
+
+    // 고정점 수렴
+    function solveGross(netPay, nonTax, init){
+      let gross = init;
+      for(let i=0;i<160;i++){
+        const r = computeAll(gross, nonTax);
+        const newGross = netPay + r.total;
+        if(Math.abs(newGross-gross) < 1) return computeAll(newGross, nonTax);
+        gross = newGross;
+      }
+      return computeAll(gross, nonTax);
+    }
+
+    // 우측 경계(plateau) 우선 채택
+    function preferRightEdge(sol, netPay, nonTax){
+      const idx = rowIndexByMin(sol.snapK);
+      if (idx < 0 || idx+1 >= TAX_TABLE.length) return sol; // 마지막 행이면 종료
+
+      const nextMin = TAX_TABLE[idx+1].min_won;
+      if (sol.snapK >= nextMin) return sol; // 이미 다음 구간이면 종료
+
+      // 다음 구간 해를 시도: 현재보다 조금 큰 초기값으로 재수렴
+      const alt = solveGross(netPay, nonTax, sol.gross + 30_000);
+      const EPS = 10; // 10원 절사 허용오차
+      if (Math.abs(alt.net - netPay) <= EPS && alt.snapK >= nextMin && alt.gross > sol.gross) {
+        return alt;
+      }
+      return sol;
+    }
+
+    // 계산
+    document.getElementById('calc_btn').addEventListener('click', ()=>{
+      if(!tableReady){ statusEl.textContent='세액표가 아직 준비되지 않았습니다.'; return; }
+      const netPay=num(netInput), nonTax=num(nonTaxInput);
+      if(netPay<=0){ document.getElementById('result').classList.add('hidden'); document.getElementById('error_message').classList.remove('hidden'); return; }
+
+      // 초기 추정치로 수렴
+      const approx = NP_RATE + HI_RATE + (HI_RATE*LTC_RATE) + EI_RATE;
+      const guess = netPay / (1 - approx);
+      let sol = solveGross(netPay, nonTax, guess);
+
+      // 우측 경계 우선 규칙 적용
+      sol = preferRightEdge(sol, netPay, nonTax);
 
       // 표시
-      document.getElementById('gross_pay_result').textContent=fmt(gross);
-      document.getElementById('deductions_total_result').textContent=fmt(total);
+      document.getElementById('gross_pay_result').textContent = fmt(sol.gross);
+      document.getElementById('deductions_total_result').textContent = fmt(sol.total);
 
-      document.getElementById('er_total_summary').textContent=fmt(er_total);
-      document.getElementById('social_total_summary').textContent=fmt(social_total);
+      document.getElementById('er_total_summary').textContent = fmt(sol.er_total);
+      document.getElementById('social_total_summary').textContent = fmt(sol.social_total);
 
-      document.getElementById('np_deduction').textContent=fmt(np);
-      document.getElementById('hi_deduction').textContent=fmt(hi);
-      document.getElementById('ltc_deduction').textContent=fmt(ltc);
-      document.getElementById('ei_deduction').textContent=fmt(ei);
-      document.getElementById('tax_deduction').textContent=fmt(tax);
-      document.getElementById('local_tax_deduction').textContent=fmt(ltax);
+      document.getElementById('np_deduction').textContent  = fmt(sol.np);
+      document.getElementById('hi_deduction').textContent  = fmt(sol.hi);
+      document.getElementById('ltc_deduction').textContent = fmt(sol.ltc);
+      document.getElementById('ei_deduction').textContent  = fmt(sol.ei);
+      document.getElementById('tax_deduction').textContent = fmt(sol.tax);
+      document.getElementById('local_tax_deduction').textContent = fmt(sol.ltax);
 
-      document.getElementById('np_er').textContent=fmt(np_er);
-      document.getElementById('hi_er').textContent=fmt(hi_er);
-      document.getElementById('ltc_er').textContent=fmt(ltc_er);
-      document.getElementById('ei_er').textContent=fmt(ei_er);
-      document.getElementById('wci_er').textContent=fmt(wci_er);
-      document.getElementById('er_total').textContent=fmt(er_total);
+      document.getElementById('np_er').textContent  = fmt(sol.np_er);
+      document.getElementById('hi_er').textContent  = fmt(sol.hi_er);
+      document.getElementById('ltc_er').textContent = fmt(sol.ltc_er);
+      document.getElementById('ei_er').textContent  = fmt(sol.ei_er);
+      document.getElementById('wci_er').textContent = fmt(sol.wci_er);
+      document.getElementById('er_total').textContent = fmt(sol.er_total);
 
-      document.getElementById('base_ins').textContent=fmt(baseIns);
-      document.getElementById('base_np').textContent=fmt(baseNP);
-      document.getElementById('base_hi').textContent=fmt(baseHI);
-      document.getElementById('base_ei').textContent=fmt(baseEI);
-      document.getElementById('base_tax').textContent=fmt(baseIns);
+      document.getElementById('base_ins').textContent = fmt(sol.baseIns);
+      document.getElementById('base_np').textContent  = fmt(sol.baseNP);
+      document.getElementById('base_hi').textContent  = fmt(sol.baseHI);
+      document.getElementById('base_ei').textContent  = fmt(sol.baseEI);
+      document.getElementById('base_tax').textContent = fmt(sol.baseIns);
 
       document.getElementById('result').classList.remove('hidden');
       document.getElementById('error_message').classList.add('hidden');
-    }
+    });
   </script>
 </body>
 </html>
