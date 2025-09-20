@@ -53,6 +53,15 @@
           <span class="text-gray-600">공제액 합계</span>
           <span id="deductions_total_result" class="font-bold text-gray-900"></span>
         </div>
+        <!-- ⬇️ 추가: 상단 요약 내 ‘사업주 부담분 합계’ & ‘4대보험 총액(근로자+사업주)’ -->
+        <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+          <span class="text-gray-600">사업주 부담분 합계</span>
+          <span id="er_total_summary" class="font-bold text-gray-900"></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-gray-600">4대보험 총액(근로자+사업주)</span>
+          <span id="social_total_summary" class="font-bold text-gray-900"></span>
+        </div>
       </div>
 
       <div class="mt-6">
@@ -240,7 +249,7 @@
         // 4대보험(근로자, 10원 절사)
         const np  = trunc10(baseNP * NP_RATE);
         const hi  = trunc10(baseHI * HI_RATE);
-        const ltc = trunc10(hi * LTC_RATE);      // 장기요양은 '건보료의' 비율
+        const ltc = trunc10(hi * LTC_RATE);
         const ei  = trunc10(baseEI * EI_RATE);
 
         // 세금(모두 10원 절사)
@@ -277,9 +286,17 @@
       const wci_er = trunc10(baseEI * WCI_ER_RATE);  // 산재보험
       const er_total = np_er + hi_er + ltc_er + ei_er + wci_er;
 
+      // === 상단 요약용 4대보험 총액(근로자+사업주) ===
+      //     국민연금 + 건강보험 + 장기요양 + 고용보험 + 산재보험의 양측 합
+      const social_total = (np + hi + ltc + ei) + (np_er + hi_er + ltc_er + ei_er + wci_er);
+
       // 표시
       document.getElementById('gross_pay_result').textContent        = fmt(gross);
       document.getElementById('deductions_total_result').textContent = fmt(total);
+
+      // ⬇️ 상단 요약 추가 표기
+      document.getElementById('er_total_summary').textContent     = fmt(er_total);
+      document.getElementById('social_total_summary').textContent = fmt(social_total);
 
       document.getElementById('np_deduction').textContent  = fmt(np);
       document.getElementById('hi_deduction').textContent  = fmt(hi);
@@ -288,7 +305,7 @@
       document.getElementById('tax_deduction').textContent = fmt(tax);
       document.getElementById('local_tax_deduction').textContent = fmt(ltax);
 
-      // 사업주 부담 표시
+      // 사업주 부담 표시(세부)
       document.getElementById('np_er').textContent  = fmt(np_er);
       document.getElementById('hi_er').textContent  = fmt(hi_er);
       document.getElementById('ltc_er').textContent = fmt(ltc_er);
