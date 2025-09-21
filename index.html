@@ -6,16 +6,43 @@
   <title>네트급여 계산기</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body{font-family:'Inter',sans-serif;background:#f3f4f6}
+    body { font-family: 'Inter', sans-serif; background: #f3f4f6 }
   </style>
 </head>
 <body class="p-4 bg-gray-100 flex items-center justify-center min-h-screen">
 
-  <!-- [CHANGED] max width 확장: 5xl -> 1280/1400px -->
+  <!-- 메인 컨테이너 -->
   <div class="bg-white rounded-2xl shadow-xl p-0 w-full max-w-[1280px] xl:max-w-[1400px]">
+
     <!-- 헤더 / 탭 -->
     <div class="border-b px-6 pt-6">
+
+      <!-- 이미지 배너 (세로로 3개) -->
+      <div class="space-y-4 mb-4">
+        <!-- 배너 1 -->
+        <a href="https://drcash.kr" target="_blank" rel="noopener noreferrer" class="block">
+          <img src="https://api.drcash.kr/resources/2.png"
+               alt="닥터캐시 배너1"
+               class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition">
+        </a>
+        <!-- 배너 2 -->
+        <a href="https://kdrcash.kr" target="_blank" rel="noopener noreferrer" class="block">
+          <img src="https://api.drcash.kr/resources/2.png"
+               alt="닥터캐시 배너2"
+               class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition">
+        </a>
+        <!-- 배너 3 -->
+        <a href="https://kdrcash.kr/guide" target="_blank" rel="noopener noreferrer" class="block">
+          <img src="https://api.drcash.kr/resources/2.png"
+               alt="닥터캐시 배너3"
+               class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition">
+        </a>
+      </div>
+
+      <!-- 제목 -->
       <h1 class="text-3xl font-bold text-gray-800 text-center mb-4">네트급여 계산기</h1>
+
+      <!-- 탭 버튼 -->
       <div class="flex items-center justify-center gap-4 mb-2">
         <button id="tab_single" type="button"
           class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors
@@ -23,10 +50,9 @@
         <button id="tab_multi" type="button"
           class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors
                  text-gray-500 border-transparent hover:text-blue-600">다중</button>
-
         <span class="ml-auto text-xs text-gray-500">
           <button id="ver_btn" type="button"
-                  class="inline-flex items-center text-blue-600 font-semibold underline hover:text-blue-800">
+            class="inline-flex items-center text-blue-600 font-semibold underline hover:text-blue-800">
             Ver 2.0
           </button>
         </span>
@@ -40,15 +66,15 @@
         <div class="mb-3">
           <label class="block text-gray-700 font-semibold mb-2">실수령액 (원)</label>
           <input id="net_pay" type="text" inputmode="numeric"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="예: 11,350,000">
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 placeholder="예: 11,350,000">
         </div>
 
         <div class="mb-4">
           <label class="block text-gray-700 font-semibold mb-2">비과세 합계(월) — 식대/자가운전 등 (원)</label>
           <input id="nontax" type="text" inputmode="numeric"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="예: 200,000 (없으면 0)">
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 placeholder="예: 200,000 (없으면 0)">
           <p id="table_status" class="text-[11px] text-gray-400 mt-1">세액표 불러오는 중…</p>
         </div>
 
@@ -164,13 +190,13 @@
           </div>
         </div>
 
+        <!-- 에러 메시지 -->
         <div id="error_message" class="text-center text-red-500 mt-4 hidden">유효한 금액을 입력해 주세요.</div>
       </div>
     </div>
 
     <!-- 다중 컨텐츠 -->
     <div id="content_multi" class="px-6 pb-6 hidden">
-      <!-- [CHANGED] max width 해제: 5xl -> none -->
       <div class="bg-white rounded-2xl p-8 max-w-none mx-auto">
         <div class="flex items-center justify-between mb-3">
           <div class="text-sm text-gray-600">여러 개의 실수령액/비과세 금액을 입력하여 요약 결과를 한 번에 확인하세요.</div>
@@ -184,7 +210,6 @@
         <div id="multi_inputs" class="space-y-2"></div>
 
         <!-- 결과 표 -->
-        <!-- [CHANGED] 큰 화면에서는 overflow 제거 / min-w 해제 -->
         <div class="overflow-x-auto xl:overflow-visible mt-4">
           <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden min-w-[1100px] xl:min-w-0">
             <thead class="bg-gray-50 text-gray-700">
@@ -214,7 +239,7 @@
   <div id="ver_modal" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-black/50"></div>
     <div role="dialog" aria-modal="true"
-          class="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl p-6">
+         class="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl p-6">
       <div class="flex items-start justify-between mb-3">
         <h3 class="text-lg font-bold text-gray-800">버전 2.0 • 계산 규칙</h3>
         <button id="ver_close"
@@ -261,7 +286,7 @@
     </div>
   </div>
 
-  <!-- 스크립트(계산 로직은 기존 그대로) -->
+  <!-- 스크립트 -->
   <script>
     // ===== 유틸 =====
     function fmt(n){ return new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원'; }
@@ -493,11 +518,11 @@
       row.className='flex flex-col sm:flex-row gap-2';
       row.innerHTML = `
         <input type="text" inputmode="numeric" placeholder="실수령액"
-              class="net-input w-full sm:w-64 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value="${initialNet}">
+               class="net-input w-full sm:w-64 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+               value="${initialNet}">
         <input type="text" inputmode="numeric" placeholder="비과세 합계(없으면 0)"
-              class="nontax-input w-full sm:w-64 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value="${initialNT}">
+               class="nontax-input w-full sm:w-64 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+               value="${initialNT}">
         <button type="button" class="remove-row px-3 py-2 text-sm rounded-lg border hover:bg-gray-100">삭제</button>
       `;
       multiInputs.appendChild(row);
@@ -553,12 +578,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
