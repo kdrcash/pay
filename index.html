@@ -10,13 +10,10 @@
   </style>
 </head>
 <body class="p-4 bg-gray-100 flex items-center justify-center min-h-screen">
-
   <!-- 메인 컨테이너 -->
   <div class="bg-white rounded-2xl shadow-xl p-0 w-full max-w-[1280px] xl:max-w-[1400px]">
-
     <!-- 헤더 / 탭 -->
     <div class="border-b px-6 pt-6">
-
       <!-- 이미지 배너 (세로로 3개) -->
       <div class="space-y-4 mb-4">
         <!-- 배너 1 -->
@@ -28,7 +25,7 @@
           >
         </a>
         <!-- 배너 2 -->
-        <a href="https://kdrcash.notion.site/survey" target="_blank" rel="noopener noreferrer" class="block">
+        <a href="https://www.kdrcash.kr/259c3612-57c6-808e-9694-d78581e63195" target="_blank" rel="noopener noreferrer" class="block">
           <img
             src="https://github.com/kdrcash/pay/blob/main/%EA%B0%9C%EC%9B%90%EA%B4%80%EB%A0%A8%20%ED%95%84%EC%88%98%EC%9E%90%EB%A3%8C%20%EB%AA%A8%EC%9D%8C.png?raw=true"
             alt="닥터캐시 배너2 개원관련 필수자료 모음"
@@ -54,12 +51,16 @@
           id="tab_single"
           type="button"
           class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors text-blue-600 font-bold border-blue-600 hover:text-blue-700"
-        >단일</button>
+        >
+          단일
+        </button>
         <button
           id="tab_multi"
           type="button"
           class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors text-gray-500 border-transparent hover:text-blue-600"
-        >다중</button>
+        >
+          다중
+        </button>
         <span class="ml-auto text-xs text-gray-500">
           <button
             id="ver_btn"
@@ -101,9 +102,11 @@
 
         <button
           id="calc_btn"
-          class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-0 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled
-        >계산하기</button>
+        >
+          계산하기
+        </button>
 
         <!-- 결과 -->
         <div id="result" class="bg-gray-50 rounded-lg p-6 hidden">
@@ -214,9 +217,7 @@
         </div>
 
         <!-- 에러 메시지 -->
-        <div id="error_message" class="text-center text-red-500 mt-4 hidden">
-          유효한 금액을 입력해 주세요.
-        </div>
+        <div id="error_message" class="text-center text-red-500 mt-4 hidden">유효한 금액을 입력해 주세요.</div>
       </div>
     </div>
 
@@ -261,7 +262,18 @@
       </div>
     </div>
 
-    <!-- 푸터 (메인 컨테이너 내부 하단) -->
+    <!-- 푸터 위 배너 (상단 3개와 동일 스타일) -->
+    <div class="space-y-4 mb-4 px-6">
+      <a href="https://www.kdrcash.kr/guide" target="_blank" rel="noopener noreferrer" class="block">
+        <img
+          src="https://github.com/kdrcash/pay/blob/main/%EB%8B%A5%ED%84%B0%EC%BA%90%EC%8B%9C%20%EC%82%AC%EC%9A%A9%20%EA%B0%80%EC%9D%B4%EB%93%9C.png?raw=true"
+          alt="닥터캐시 푸터 배너"
+          class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition"
+        >
+      </a>
+    </div>
+
+    <!-- 푸터 -->
     <footer class="border-t px-6 py-4 text-center text-xs text-gray-500">
       © 2024 한국병의원데이터. All Rights Reserved
     </footer>
@@ -270,14 +282,20 @@
   <!-- Ver 2.0 규칙 모달 -->
   <div id="ver_modal" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-black/50"></div>
-    <div role="dialog" aria-modal="true" class="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl p-6">
+    <div
+      role="dialog"
+      aria-modal="true"
+      class="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl p-6"
+    >
       <div class="flex items-start justify-between mb-3">
         <h3 class="text-lg font-bold text-gray-800">버전 2.0 • 계산 규칙</h3>
         <button
           id="ver_close"
           class="p-2 -m-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           aria-label="닫기"
-        >✕</button>
+        >
+          ✕
+        </button>
       </div>
 
       <div class="text-sm text-gray-700 space-y-4">
@@ -316,7 +334,9 @@
         <button
           id="ver_ok"
           class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >확인</button>
+        >
+          확인
+        </button>
       </div>
     </div>
   </div>
@@ -521,22 +541,22 @@
       const excl_pct = (r.total_burden_excl / netPay) * 100;
       const incl_pct = (r.total_burden_incl / netPay) * 100;
 
-      document.getElementById('social_total_summary').textContent    = fmt(r.social_total);
-      document.getElementById('withholding_total_summary').textContent = fmt(r.withholding_total);
-      document.getElementById('overhead_excl_gratuity').textContent  = fmt(r.overhead_excl);
-      document.getElementById('gratuity_summary').textContent        = fmt(r.gratuity);
-      document.getElementById('overhead_incl_gratuity').textContent  = fmt(r.overhead_incl);
+      document.getElementById('social_total_summary').textContent       = fmt(r.social_total);
+      document.getElementById('withholding_total_summary').textContent  = fmt(r.withholding_total);
+      document.getElementById('overhead_excl_gratuity').textContent     = fmt(r.overhead_excl);
+      document.getElementById('gratuity_summary').textContent           = fmt(r.gratuity);
+      document.getElementById('overhead_incl_gratuity').textContent     = fmt(r.overhead_incl);
 
-      document.getElementById('total_burden_excl').textContent = fmt(r.total_burden_excl);
-      document.getElementById('total_burden_incl').textContent = fmt(r.total_burden_incl);
-      document.getElementById('total_burden_excl_pct').textContent = fmtPct(excl_pct);
-      document.getElementById('total_burden_incl_pct').textContent = fmtPct(incl_pct);
+      document.getElementById('total_burden_excl').textContent          = fmt(r.total_burden_excl);
+      document.getElementById('total_burden_incl').textContent          = fmt(r.total_burden_incl);
+      document.getElementById('total_burden_excl_pct').textContent      = fmtPct(excl_pct);
+      document.getElementById('total_burden_incl_pct').textContent      = fmtPct(incl_pct);
 
-      document.getElementById('annual_excl').textContent = fmt(r.annual_excl);
-      document.getElementById('annual_incl').textContent = fmt(r.annual_incl);
+      document.getElementById('annual_excl').textContent                = fmt(r.annual_excl);
+      document.getElementById('annual_incl').textContent                = fmt(r.annual_incl);
 
-      document.getElementById('gross_pay_result').textContent        = fmt(r.gross);
-      document.getElementById('deductions_total_result').textContent = fmt(r.total);
+      document.getElementById('gross_pay_result').textContent           = fmt(r.gross);
+      document.getElementById('deductions_total_result').textContent    = fmt(r.total);
 
       document.getElementById('error_message').classList.add('hidden');
       document.getElementById('result').classList.remove('hidden');
@@ -613,4 +633,3 @@
   </script>
 </body>
 </html>
-
