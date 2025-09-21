@@ -10,35 +10,32 @@
   </style>
 </head>
 <body class="p-4 bg-gray-100 flex items-center justify-center min-h-screen">
+
   <!-- 메인 컨테이너 -->
   <div class="bg-white rounded-2xl shadow-xl p-0 w-full max-w-[1280px] xl:max-w-[1400px]">
+
     <!-- 헤더 / 탭 -->
     <div class="border-b px-6 pt-6">
+
       <!-- 이미지 배너 (세로로 3개) -->
       <div class="space-y-4 mb-4">
         <!-- 배너 1 -->
         <a href="https://www.kdrcash.kr/" target="_blank" rel="noopener noreferrer" class="block">
-          <img
-            src="https://github.com/kdrcash/pay/blob/main/%EB%B3%91%EC%9D%98%EC%9B%90%20%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B6%84%EC%84%9D%20%ED%94%8C%EB%9E%AB%ED%8F%BC%20%EB%8B%A5%ED%84%B0%EC%BA%90%EC%8B%9C.png?raw=true"
-            alt="닥터캐시 배너1 닥터캐시"
-            class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition"
-          >
+          <img src="https://github.com/kdrcash/pay/blob/main/%EB%B3%91%EC%9D%98%EC%9B%90%20%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B6%84%EC%84%9D%20%ED%94%8C%EB%9E%AB%ED%8F%BC%20%EB%8B%A5%ED%84%B0%EC%BA%90%EC%8B%9C.png?raw=true"
+               alt="닥터캐시 배너1 닥터캐시"
+               class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition">
         </a>
         <!-- 배너 2 -->
         <a href="https://www.kdrcash.kr/259c3612-57c6-808e-9694-d78581e63195" target="_blank" rel="noopener noreferrer" class="block">
-          <img
-            src="https://github.com/kdrcash/pay/blob/main/%EA%B0%9C%EC%9B%90%EA%B4%80%EB%A0%A8%20%ED%95%84%EC%88%98%EC%9E%90%EB%A3%8C%20%EB%AA%A8%EC%9D%8C.png?raw=true"
-            alt="닥터캐시 배너2 개원관련 필수자료 모음"
-            class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition"
-          >
+          <img src="https://github.com/kdrcash/pay/blob/main/%EA%B0%9C%EC%9B%90%EA%B4%80%EB%A0%A8%20%ED%95%84%EC%88%98%EC%9E%90%EB%A3%8C%20%EB%AA%A8%EC%9D%8C.png?raw=true"
+               alt="닥터캐시 배너2 개원관련 필수자료 모음"
+               class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition">
         </a>
         <!-- 배너 3 -->
         <a href="https://www.kdrcash.kr/download" target="_blank" rel="noopener noreferrer" class="block">
-          <img
-            src="https://github.com/kdrcash/pay/blob/main/%EB%8B%A5%ED%84%B0%EC%BA%90%EC%8B%9C%20%EB%8B%A4%EC%9A%B4%EB%A1%9C%EB%93%9C.png?raw=true"
-            alt="닥터캐시 배너3 닥터캐시 다운로드"
-            class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition"
-          >
+          <img src="https://github.com/kdrcash/pay/blob/main/%EB%8B%A5%ED%84%B0%EC%BA%90%EC%8B%9C%20%EB%8B%A4%EC%9A%B4%EB%A1%9C%EB%93%9C.png?raw=true"
+               alt="닥터캐시 배너3 닥터캐시 다운로드"
+               class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition">
         </a>
       </div>
 
@@ -47,26 +44,15 @@
 
       <!-- 탭 버튼 -->
       <div class="flex items-center justify-center gap-4 mb-2">
-        <button
-          id="tab_single"
-          type="button"
-          class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors text-blue-600 font-bold border-blue-600 hover:text-blue-700"
-        >
-          단일
-        </button>
-        <button
-          id="tab_multi"
-          type="button"
-          class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors text-gray-500 border-transparent hover:text-blue-600"
-        >
-          다중
-        </button>
+        <button id="tab_single" type="button"
+          class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors
+                 text-blue-600 font-bold border-blue-600 hover:text-blue-700">단일</button>
+        <button id="tab_multi" type="button"
+          class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors
+                 text-gray-500 border-transparent hover:text-blue-600">다중</button>
         <span class="ml-auto text-xs text-gray-500">
-          <button
-            id="ver_btn"
-            type="button"
-            class="inline-flex items-center text-blue-600 font-semibold underline hover:text-blue-800"
-          >
+          <button id="ver_btn" type="button"
+            class="inline-flex items-center text-blue-600 font-semibold underline hover:text-blue-800">
             Ver 2.0
           </button>
         </span>
@@ -79,34 +65,22 @@
         <!-- 입력 -->
         <div class="mb-3">
           <label class="block text-gray-700 font-semibold mb-2">실수령액 (원)</label>
-          <input
-            id="net_pay"
-            type="text"
-            inputmode="numeric"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="예: 11,350,000"
-          >
+          <input id="net_pay" type="text" inputmode="numeric"
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 placeholder="예: 11,350,000">
         </div>
 
         <div class="mb-4">
           <label class="block text-gray-700 font-semibold mb-2">비과세 합계(월) — 식대/자가운전 등 (원)</label>
-          <input
-            id="nontax"
-            type="text"
-            inputmode="numeric"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="예: 200,000 (없으면 0)"
-          >
+          <input id="nontax" type="text" inputmode="numeric"
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                 placeholder="예: 200,000 (없으면 0)">
           <p id="table_status" class="text-[11px] text-gray-400 mt-1">세액표 불러오는 중…</p>
         </div>
 
-        <button
-          id="calc_btn"
-          class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-0 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled
-        >
-          계산하기
-        </button>
+        <button id="calc_btn"
+                class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled>계산하기</button>
 
         <!-- 결과 -->
         <div id="result" class="bg-gray-50 rounded-lg p-6 hidden">
@@ -225,9 +199,7 @@
     <div id="content_multi" class="px-6 pb-6 hidden">
       <div class="bg-white rounded-2xl p-8 max-w-none mx-auto">
         <div class="flex items-center justify-between mb-3">
-          <div class="text-sm text-gray-600">
-            여러 개의 실수령액/비과세 금액을 입력하여 요약 결과를 한 번에 확인하세요.
-          </div>
+          <div class="text-sm text-gray-600">여러 개의 실수령액/비과세 금액을 입력하여 요약 결과를 한 번에 확인하세요.</div>
           <div class="flex gap-2">
             <button id="add_row" class="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg border">+ 행 추가</button>
             <button id="calc_multi" class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">다중 계산</button>
@@ -261,12 +233,12 @@
         <p id="table_status_multi" class="text-[11px] text-gray-400 mt-2">세액표 준비 상태: 로딩 중…</p>
       </div>
     </div>
-
+    
     <!-- 푸터 위 배너 (상단 3개와 동일 스타일) -->
     <div class="space-y-4 mb-4 px-6">
-      <a href="https://www.kdrcash.kr/guide" target="_blank" rel="noopener noreferrer" class="block">
+      <a href="https://www.kdrcash.kr" target="_blank" rel="noopener noreferrer" class="block">
         <img
-          src="https://github.com/kdrcash/pay/blob/main/%EB%8B%A5%ED%84%B0%EC%BA%90%EC%8B%9C%20%EC%82%AC%EC%9A%A9%20%EA%B0%80%EC%9D%B4%EB%93%9C.png?raw=true"
+          src="https://github.com/kdrcash/pay/blob/main/%EB%B3%91%EC%9D%98%EC%9B%90%20%EB%8D%B0%EC%9D%B4%ED%84%B0%EB%B6%84%EC%84%9D%20%ED%94%8C%EB%9E%AB%ED%8F%BC%20%EB%8B%A5%ED%84%B0%EC%BA%90%EC%8B%9C.png?raw=true"
           alt="닥터캐시 푸터 배너"
           class="mx-auto max-w-full h-auto rounded-lg shadow-md hover:opacity-90 transition"
         >
@@ -282,20 +254,13 @@
   <!-- Ver 2.0 규칙 모달 -->
   <div id="ver_modal" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-black/50"></div>
-    <div
-      role="dialog"
-      aria-modal="true"
-      class="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl p-6"
-    >
+    <div role="dialog" aria-modal="true"
+         class="relative w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl p-6">
       <div class="flex items-start justify-between mb-3">
         <h3 class="text-lg font-bold text-gray-800">버전 2.0 • 계산 규칙</h3>
-        <button
-          id="ver_close"
-          class="p-2 -m-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          aria-label="닫기"
-        >
-          ✕
-        </button>
+        <button id="ver_close"
+                class="p-2 -m-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="닫기">✕</button>
       </div>
 
       <div class="text-sm text-gray-700 space-y-4">
@@ -331,12 +296,8 @@
       </div>
 
       <div class="mt-5 flex justify-end">
-        <button
-          id="ver_ok"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          확인
-        </button>
+        <button id="ver_ok"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">확인</button>
       </div>
     </div>
   </div>
@@ -373,9 +334,7 @@
     }
     tabSingleBtn.addEventListener('click', ()=>setActive(tabSingleBtn, tabMultiBtn, contentSingle, contentMulti));
     tabMultiBtn.addEventListener('click',  ()=>setActive(tabMultiBtn, tabSingleBtn, contentMulti, contentSingle));
-
-    // 초기 상태: 단일 활성
-    setActive(tabSingleBtn, tabMultiBtn, contentSingle, contentMulti);
+    setActive(tabSingleBtn, tabMultiBtn, contentSingle, contentMulti); // 초기: 단일
 
     // ===== 입력 바인딩 (단일) =====
     const netInput = document.getElementById('net_pay');
@@ -383,11 +342,11 @@
     bindComma(netInput); bindComma(nonTaxInput);
 
     // ===== 파라미터 =====
-    const NP_MIN=400_000, NP_MAX=6_370_000;
-    const HI_MIN=279_266, HI_MAX=127_056_982;
+    const NP_MIN=400_000, NP_MAX=6_370_000;            // 국민연금 기준소득 하·상한
+    const HI_MIN=279_266, HI_MAX=127_056_982;          // 건강보험 보수월액 하·상한
     const NP_RATE=0.0450, HI_RATE=0.03545, LTC_RATE=0.1295, EI_RATE=0.0090;
     const NP_ER_RATE=0.0450, HI_ER_RATE=0.03545, LTC_ER_RATE=0.1295, EI_ER_RATE=0.0115, WCI_ER_RATE=0.0072;
-    const BASE10_1PERSON_RAW=1_507_405;
+    const BASE10_1PERSON_RAW=1_507_405; // 간이세액표 보간용 기준값(1인)
 
     // ===== 모달 =====
     const verBtn = document.getElementById('ver_btn');
@@ -522,7 +481,13 @@
         social_total, withholding_total,
         overhead_excl, overhead_incl,
         gratuity,
-        total_burden_excl, total_burden_incl
+        total_burden_excl, total_burden_incl,
+        // 세부 공제(근로자)
+        np, hi, ltc, ei, tax, ltax,
+        // 사업주 부담
+        np_er, hi_er, ltc_er, ei_er, wci_er, er_total,
+        // 기준 금액
+        baseIns, baseNP, baseHI, baseEI, baseTax: baseIns
       };
     }
 
@@ -541,22 +506,46 @@
       const excl_pct = (r.total_burden_excl / netPay) * 100;
       const incl_pct = (r.total_burden_incl / netPay) * 100;
 
-      document.getElementById('social_total_summary').textContent       = fmt(r.social_total);
-      document.getElementById('withholding_total_summary').textContent  = fmt(r.withholding_total);
-      document.getElementById('overhead_excl_gratuity').textContent     = fmt(r.overhead_excl);
-      document.getElementById('gratuity_summary').textContent           = fmt(r.gratuity);
-      document.getElementById('overhead_incl_gratuity').textContent     = fmt(r.overhead_incl);
+      // 요약
+      document.getElementById('social_total_summary').textContent    = fmt(r.social_total);
+      document.getElementById('withholding_total_summary').textContent = fmt(r.withholding_total);
+      document.getElementById('overhead_excl_gratuity').textContent = fmt(r.overhead_excl);
+      document.getElementById('gratuity_summary').textContent       = fmt(r.gratuity);
+      document.getElementById('overhead_incl_gratuity').textContent = fmt(r.overhead_incl);
 
-      document.getElementById('total_burden_excl').textContent          = fmt(r.total_burden_excl);
-      document.getElementById('total_burden_incl').textContent          = fmt(r.total_burden_incl);
-      document.getElementById('total_burden_excl_pct').textContent      = fmtPct(excl_pct);
-      document.getElementById('total_burden_incl_pct').textContent      = fmtPct(incl_pct);
+      document.getElementById('total_burden_excl').textContent = fmt(r.total_burden_excl);
+      document.getElementById('total_burden_incl').textContent = fmt(r.total_burden_incl);
+      document.getElementById('total_burden_excl_pct').textContent = fmtPct(excl_pct);
+      document.getElementById('total_burden_incl_pct').textContent = fmtPct(incl_pct);
 
-      document.getElementById('annual_excl').textContent                = fmt(r.annual_excl);
-      document.getElementById('annual_incl').textContent                = fmt(r.annual_incl);
+      document.getElementById('annual_excl').textContent = fmt(r.annual_excl);
+      document.getElementById('annual_incl').textContent = fmt(r.annual_incl);
 
-      document.getElementById('gross_pay_result').textContent           = fmt(r.gross);
-      document.getElementById('deductions_total_result').textContent    = fmt(r.total);
+      document.getElementById('gross_pay_result').textContent        = fmt(r.gross);
+      document.getElementById('deductions_total_result').textContent = fmt(r.total);
+
+      // 세부 공제 내역(근로자)
+      document.getElementById('np_deduction').textContent     = fmt(r.np);
+      document.getElementById('hi_deduction').textContent     = fmt(r.hi);
+      document.getElementById('ltc_deduction').textContent    = fmt(r.ltc);
+      document.getElementById('ei_deduction').textContent     = fmt(r.ei);
+      document.getElementById('tax_deduction').textContent    = fmt(r.tax);
+      document.getElementById('local_tax_deduction').textContent = fmt(r.ltax);
+
+      // 사업주 부담분
+      document.getElementById('np_er').textContent   = fmt(r.np_er);
+      document.getElementById('hi_er').textContent   = fmt(r.hi_er);
+      document.getElementById('ltc_er').textContent  = fmt(r.ltc_er);
+      document.getElementById('ei_er').textContent   = fmt(r.ei_er);
+      document.getElementById('wci_er').textContent  = fmt(r.wci_er);
+      document.getElementById('er_total').textContent= fmt(r.er_total);
+
+      // 기준 금액
+      document.getElementById('base_ins').textContent = fmt(r.baseIns);
+      document.getElementById('base_np').textContent  = fmt(r.baseNP);
+      document.getElementById('base_hi').textContent  = fmt(r.baseHI);
+      document.getElementById('base_ei').textContent  = fmt(r.baseEI);
+      document.getElementById('base_tax').textContent = fmt(r.baseTax);
 
       document.getElementById('error_message').classList.add('hidden');
       document.getElementById('result').classList.remove('hidden');
@@ -587,7 +576,6 @@
       bindComma(netEl); bindComma(ntEl);
       row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); });
     }
-    // 기본 2행
     createRow(); createRow();
     addRowBtn.addEventListener('click', ()=>createRow());
 
