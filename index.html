@@ -7,9 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body{font-family:'Inter',sans-serif;background:#f3f4f6}
-    .tab-btn{ @apply px-4 py-2 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-blue-600; }
-    .tab-active{ @apply font-bold text-blue-600 border-blue-600; }
-    .th-num{ @apply text-right; }
   </style>
 </head>
 <body class="p-4 bg-gray-100 flex items-center justify-center min-h-screen">
@@ -18,9 +15,26 @@
     <!-- 탭 헤더 -->
     <div class="border-b px-6 pt-4">
       <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">네트급여 계산기</h1>
+
+      <!-- 탭 버튼: 기본 클래스 + JS에서 active/inactive 클래스 토글 -->
       <div class="flex items-center justify-center gap-4 mb-4">
-        <button id="tab_single" class="tab-btn tab-active" type="button">단일</button>
-        <button id="tab_multi"  class="tab-btn" type="button">다중</button>
+        <button
+          id="tab_single"
+          type="button"
+          class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors
+                 hover:text-blue-600
+                 text-blue-600 font-bold border-blue-600">
+          단일
+        </button>
+        <button
+          id="tab_multi"
+          type="button"
+          class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors
+                 hover:text-blue-600
+                 text-gray-500 border-transparent">
+          다중
+        </button>
+
         <span class="ml-auto text-xs text-gray-500">
           <button id="ver_btn" type="button" class="inline-flex items-center text-blue-600 font-semibold underline hover:text-blue-800">
             Ver 1.0
@@ -184,14 +198,14 @@
               <tr>
                 <th class="p-2 border-b">실수령액</th>
                 <th class="p-2 border-b">비과세</th>
-                <th class="p-2 border-b th-num">지급총액</th>
-                <th class="p-2 border-b th-num">공제합계</th>
-                <th class="p-2 border-b th-num">연봉 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
-                <th class="p-2 border-b th-num">연봉 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
-                <th class="p-2 border-b th-num">총부담 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
-                <th class="p-2 border-b th-num whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(제외)</span></th>
-                <th class="p-2 border-b th-num">총부담 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
-                <th class="p-2 border-b th-num whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(포함)</span></th>
+                <th class="p-2 border-b text-right">지급총액</th>
+                <th class="p-2 border-b text-right">공제합계</th>
+                <th class="p-2 border-b text-right">연봉 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
+                <th class="p-2 border-b text-right">연봉 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
+                <th class="p-2 border-b text-right">총부담 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
+                <th class="p-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(제외)</span></th>
+                <th class="p-2 border-b text-right">총부담 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
+                <th class="p-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(포함)</span></th>
               </tr>
             </thead>
             <tbody id="multi_results" class="text-gray-800"></tbody>
@@ -204,7 +218,7 @@
     </div>
   </div>
 
-  <!-- Ver 1.0 규칙 모달 -->
+  <!-- Ver 1.0 규칙 모달 (동일) -->
   <div id="ver_modal" class="fixed inset-0 z-50 hidden items-center justify-center">
     <div class="absolute inset-0 bg-black/50"></div>
     <div role="dialog" aria-modal="true"
@@ -257,8 +271,8 @@
   </div>
 
   <script>
-    // ===== 공통 포맷/유틸 =====
-    function fmt(n){ return new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원'; }
+    // ===== 유틸 =====
+    const fmt = n => new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원';
     const fmtPct = n => new Intl.NumberFormat('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:1}).format(n)+' %';
     const num = el => parseFloat((el.value||'0').replace(/[^\d]/g,''))||0;
     const trunc10 = v => Math.floor(v/10)*10;
@@ -268,36 +282,46 @@
       e.target.value = d ? new Intl.NumberFormat('ko-KR').format(+d) : '';
     });
 
-    // ===== 탭 제어 =====
+    // ===== 탭 제어 (유틸리티 클래스 직접 토글) =====
     const tabSingleBtn = document.getElementById('tab_single');
     const tabMultiBtn  = document.getElementById('tab_multi');
     const contentSingle= document.getElementById('content_single');
     const contentMulti = document.getElementById('content_multi');
-    function switchTab(which){
-      if(which==='single'){
-        tabSingleBtn.classList.add('tab-active'); tabMultiBtn.classList.remove('tab-active');
-        contentSingle.classList.remove('hidden'); contentMulti.classList.add('hidden');
-      }else{
-        tabMultiBtn.classList.add('tab-active'); tabSingleBtn.classList.remove('tab-active');
-        contentMulti.classList.remove('hidden'); contentSingle.classList.add('hidden');
-      }
-    }
-    tabSingleBtn.addEventListener('click', ()=>switchTab('single'));
-    tabMultiBtn.addEventListener('click',  ()=>switchTab('multi'));
 
-    // ===== 단일 입력 바인딩 =====
+    const ACTIVE = ['text-blue-600','font-bold','border-blue-600'];
+    const INACTIVE = ['text-gray-500','border-transparent'];
+
+    function setActive(btnActive, btnInactive, show, hide){
+      // 활성 버튼: 파란색+볼드+하단 보더
+      btnActive.classList.add(...ACTIVE);
+      btnActive.classList.remove(...INACTIVE);
+      // 비활성 버튼: 회색+투명 보더
+      btnInactive.classList.add(...INACTIVE);
+      btnInactive.classList.remove(...ACTIVE);
+      // 컨텐츠 토글
+      show.classList.remove('hidden');
+      hide.classList.add('hidden');
+    }
+
+    // 초기 상태: 단일 탭 활성
+    setActive(tabSingleBtn, tabMultiBtn, contentSingle, contentMulti);
+
+    tabSingleBtn.addEventListener('click', ()=>setActive(tabSingleBtn, tabMultiBtn, contentSingle, contentMulti));
+    tabMultiBtn.addEventListener('click',  ()=>setActive(tabMultiBtn, tabSingleBtn, contentMulti, contentSingle));
+
+    // ===== 단일 입력 =====
     const netInput = document.getElementById('net_pay');
     const nonTaxInput = document.getElementById('nontax');
     bindComma(netInput); bindComma(nonTaxInput);
 
-    // ===== 상·하한(원) / 요율 =====
+    // ===== 파라미터 =====
     const NP_MIN=400_000, NP_MAX=6_370_000;
     const HI_MIN=279_266, HI_MAX=127_056_982;
     const NP_RATE=0.0450, HI_RATE=0.03545, LTC_RATE=0.1295, EI_RATE=0.0090;
     const NP_ER_RATE=0.0450, HI_ER_RATE=0.03545, LTC_ER_RATE=0.1295, EI_ER_RATE=0.0115, WCI_ER_RATE=0.0072;
     const BASE10_1PERSON_RAW=1_507_405;
 
-    // ===== Ver 1.0 모달 =====
+    // ===== 모달 =====
     const verBtn = document.getElementById('ver_btn');
     const verModal = document.getElementById('ver_modal');
     const verClose = document.getElementById('ver_close');
@@ -330,11 +354,11 @@
         TAX_TABLE.sort((a,b)=>a.min_won-b.min_won);
         tableReady=true;
         statusEl.textContent='세액표 로드 완료';
-        statusElMulti.textContent='세액표 준비 상태: 로드 완료';
+        if(statusElMulti) statusElMulti.textContent='세액표 준비 상태: 로드 완료';
         document.getElementById('calc_btn').disabled=false;
       }catch(e){
         statusEl.textContent='세액표 로드 실패: '+e.message;
-        statusElMulti.textContent='세액표 로드 실패: '+e.message;
+        if(statusElMulti) statusElMulti.textContent='세액표 로드 실패: '+e.message;
       }
     }
     loadTax();
@@ -354,15 +378,15 @@
       if(r.found) return trunc10(r.tax);
       const g=amountExclNT, b10=BASE10_1PERSON_RAW; let t=b10;
       if(g>10_000_000&&g<=14_000_000) t += 25_000 + 0.35*0.98*(g-10_000_000);
-      else if(g>14_000_000&&g<=28_000_000) t += 1_397_000 + 0.38*0.98*(g-14_000_000);
-      else if(g>28_000_000&&g<=30_000_000) t += 6_610_600 + 0.40*0.98*(g-28_000_000);
-      else if(g>30_000_000&&g<=45_000_000) t += 7_394_600 + 0.40*(g-30_000_000);
-      else if(g>45_000_000&&g<=87_000_000) t += 13_394_600 + 0.42*(g-45_000_000);
-      else if(g>87_000_000)               t += 31_034_600 + 0.45*(g-87_000_000);
+      else if(g>14_000_000&&g<=28_000_000) t += 1,397,000 + 0.38*0.98*(g-14_000_000);
+      else if(g>28_000_000&&g<=30_000_000) t += 6,610,600 + 0.40*0.98*(g-28_000_000);
+      else if(g>30_000_000&&g<=45_000_000) t += 7,394,600 + 0.40*(g-30_000_000);
+      else if(g>45_000_000&&g<=87_000_000) t += 13,394,600 + 0.42*(g-45_000_000);
+      else if(g>87_000_000)               t += 31,034,600 + 0.45*(g-87_000_000);
       return trunc10(t);
     }
 
-    // ===== 공통 계산 함수 =====
+    // ===== 공통 계산 =====
     function compute(netPay, nonTax){
       if(!tableReady || netPay<=0){ return null; }
 
@@ -436,8 +460,9 @@
     }
 
     // ===== 단일 계산 버튼 =====
-    document.getElementById('calc_btn').addEventListener('click', ()=>{
-      if(!tableReady){ statusEl.textContent='세액표가 아직 준비되지 않았습니다.'; return; }
+    const calcBtn = document.getElementById('calc_btn');
+    calcBtn.addEventListener('click', ()=>{
+      if(!tableReady){ document.getElementById('table_status').textContent='세액표가 아직 준비되지 않았습니다.'; return; }
       const netPay=num(netInput), nonTax=num(nonTaxInput);
       if(netPay<=0){
         document.getElementById('result').classList.add('hidden');
@@ -447,11 +472,9 @@
       const r=compute(netPay, nonTax);
       if(!r){ return; }
 
-      // 퍼센트
       const excl_pct = (r.total_burden_excl / netPay) * 100;
       const incl_pct = (r.total_burden_incl / netPay) * 100;
 
-      // 표시
       document.getElementById('social_total_summary').textContent    = fmt(r.social_total);
       document.getElementById('withholding_total_summary').textContent = fmt(r.withholding_total);
       document.getElementById('overhead_excl_gratuity').textContent  = fmt(r.overhead_excl);
@@ -473,7 +496,7 @@
       document.getElementById('result').classList.remove('hidden');
     });
 
-    // ===== 다중 계산식: 행 관리 =====
+    // ===== 다중 계산식 =====
     const multiInputs = document.getElementById('multi_inputs');
     const multiResults = document.getElementById('multi_results');
     const addRowBtn = document.getElementById('add_row');
@@ -498,14 +521,12 @@
       bindComma(netEl); bindComma(ntEl);
       row.querySelector('.remove-row').addEventListener('click', ()=>{ row.remove(); });
     }
-
-    // 최초 2행
+    // 초기 2행
     createRow(); createRow();
-
     addRowBtn.addEventListener('click', ()=>createRow());
 
     calcMultiBtn.addEventListener('click', ()=>{
-      if(!tableReady){ statusElMulti.textContent='세액표가 아직 준비되지 않았습니다.'; return; }
+      if(!tableReady){ if(statusElMulti) statusElMulti.textContent='세액표가 아직 준비되지 않았습니다.'; return; }
       multiResults.innerHTML='';
       const rows = Array.from(multiInputs.children);
       rows.forEach(r=>{
@@ -543,6 +564,10 @@
         multiResults.appendChild(tr);
       }
     });
+
+    // ===== 참고: 세액표를 file://에서 못 불러오는 경우 =====
+    // 로컬에서 HTML을 더블클릭(file://)로 여는 경우 fetch가 실패합니다.
+    // 간단 서버로 열어주세요:  python -m http.server 8080  → http://localhost:8080
   </script>
 </body>
 </html>
