@@ -16,7 +16,6 @@
     <div class="border-b px-6 pt-4">
       <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">네트급여 계산기</h1>
       <div class="flex items-center justify-center gap-4 mb-2">
-        <!-- 활성/비활성은 JS에서 클래스 토글 -->
         <button id="tab_single" type="button"
           class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors
                  text-blue-600 font-bold border-blue-600 hover:text-blue-700">단일</button>
@@ -33,7 +32,7 @@
       </div>
     </div>
 
-    <!-- 단일 컨텐츠 (기존 코드 유지) -->
+    <!-- 단일 컨텐츠 -->
     <div id="content_single" class="px-6 pb-6">
       <div class="bg-white rounded-2xl p-8 max-w-3xl mx-auto">
         <!-- 입력 -->
@@ -187,16 +186,16 @@
           <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
             <thead class="bg-gray-50 text-gray-700">
               <tr>
-                <th class="p-2 border-b">실수령액</th>
-                <th class="p-2 border-b">비과세</th>
+                <th class="p-2 border-b text-right">실수령액</th>
+                <th class="p-2 border-b text-right">비과세</th>
                 <th class="p-2 border-b text-right">지급총액</th>
                 <th class="p-2 border-b text-right">공제합계</th>
                 <th class="p-2 border-b text-right">연봉 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
                 <th class="p-2 border-b text-right">연봉 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
                 <th class="p-2 border-b text-right">총부담 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
-                <th class="p-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(제외)</span></th>
+                <th class="p-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
                 <th class="p-2 border-b text-right">총부담 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
-                <th class="p-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(포함)</span></th>
+                <th class="p-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
               </tr>
             </thead>
             <tbody id="multi_results" class="text-gray-800"></tbody>
@@ -233,7 +232,6 @@
           </ul>
         </div>
 
-        <!-- 총부담액 산식 -->
         <div>
           <h4 class="font-semibold text-gray-900 mb-1">총부담액 산식</h4>
           <div class="rounded-lg bg-gray-50 border border-gray-200 p-3 text-[13px] leading-6">
@@ -364,11 +362,11 @@
       if(r.found) return trunc10(r.tax);
       const g=amountExclNT, b10=BASE10_1PERSON_RAW; let t=b10;
       if(g>10_000_000&&g<=14_000_000) t += 25_000 + 0.35*0.98*(g-10_000_000);
-      else if(g>14_000_000&&g<=28_000_000) t += 1_397_000 + 0.38*0.98*(g-14_000_000);
-      else if(g>28_000_000&&g<=30_000_000) t += 6,610,600 + 0.40*0.98*(g-28_000_000);
-      else if(g>30_000_000&&g<=45_000_000) t += 7,394,600 + 0.40*(g-30_000_000);
-      else if(g>45_000_000&&g<=87_000_000) t += 13,394,600 + 0.42*(g-45_000_000);
-      else if(g>87_000_000)               t += 31,034,600 + 0.45*(g-87_000_000);
+      else if(g>14_000_000&&g<=28_000_000) t += 1397000 + 0.38*0.98*(g-14_000_000);
+      else if(g>28_000_000&&g<=30_000_000) t += 6610600 + 0.40*0.98*(g-28_000_000);
+      else if(g>30_000_000&&g<=45_000_000) t += 7394600 + 0.40*(g-30_000_000);
+      else if(g>45_000_000&&g<=87_000_000) t += 13394600 + 0.42*(g-45_000_000);
+      else if(g>87_000_000)               t += 31034600 + 0.45*(g-87_000_000);
       return trunc10(t);
     }
 
@@ -476,9 +474,7 @@
       document.getElementById('gross_pay_result').textContent        = fmt(r.gross);
       document.getElementById('deductions_total_result').textContent = fmt(r.total);
 
-      // 세부 항목
-      document.getElementById('np_deduction').textContent  = fmt(r ? trunc10(Math.min(Math.max(Math.floor((Math.max(r.gross - num(nontax),0)/1000))*1000, NP_MIN), NP_MAX) * NP_RATE) : 0);
-      // 위 한 줄은 단일 표시에 필수는 아니지만 기존 구조 유지용. 필요 시 세부 재계산 로직을 별도 변수로 뺄 수 있습니다.
+      // (세부 내역은 기존처럼 필요한 경우 추가 계산하여 채워 넣을 수 있습니다)
 
       document.getElementById('error_message').classList.add('hidden');
       document.getElementById('result').classList.remove('hidden');
