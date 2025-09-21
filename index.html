@@ -11,7 +11,8 @@
 </head>
 <body class="p-4 bg-gray-100 flex items-center justify-center min-h-screen">
 
-  <div class="bg-white rounded-2xl shadow-xl p-0 w-full max-w-5xl">
+  <!-- [CHANGED] max width 확장: 5xl -> 1400/1600px -->
+  <div class="bg-white rounded-2xl shadow-xl p-0 w-full max-w-[1400px] xl:max-w-[1600px]">
     <!-- 헤더 / 탭 -->
     <div class="border-b px-6 pt-4">
       <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">네트급여 계산기</h1>
@@ -169,7 +170,8 @@
 
     <!-- 다중 컨텐츠 -->
     <div id="content_multi" class="px-6 pb-6 hidden">
-      <div class="bg-white rounded-2xl p-8 max-w-5xl mx-auto">
+      <!-- [CHANGED] max width 해제: 5xl -> none -->
+      <div class="bg-white rounded-2xl p-8 max-w-none mx-auto">
         <div class="flex items-center justify-between mb-3">
           <div class="text-sm text-gray-600">여러 개의 실수령액/비과세 금액을 입력하여 요약 결과를 한 번에 확인하세요.</div>
           <div class="flex gap-2">
@@ -182,8 +184,9 @@
         <div id="multi_inputs" class="space-y-2"></div>
 
         <!-- 결과 표 -->
-        <div class="overflow-x-auto mt-4">
-          <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden min-w-[1100px]">
+        <!-- [CHANGED] 큰 화면에서는 overflow 제거 / min-w 해제 -->
+        <div class="overflow-x-auto xl:overflow-visible mt-4">
+          <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden min-w-[1100px] xl:min-w-0">
             <thead class="bg-gray-50 text-gray-700">
               <tr>
                 <th class="p-2 border-b text-right whitespace-nowrap">실수령액</th>
@@ -258,6 +261,7 @@
     </div>
   </div>
 
+  <!-- 스크립트(계산 로직은 기존 그대로) -->
   <script>
     // ===== 유틸 =====
     function fmt(n){ return new Intl.NumberFormat('ko-KR').format(Math.round(n))+' 원'; }
