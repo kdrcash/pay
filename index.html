@@ -7,6 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body{font-family:'Inter',sans-serif;background:#f3f4f6}
+    /* 숫자 폭 고정으로 겹침/진동 방지 */
+    .tabular-nums{font-variant-numeric: tabular-nums;}
   </style>
 </head>
 <body class="p-4 bg-gray-100 flex items-center justify-center min-h-screen">
@@ -124,43 +126,6 @@
               <span id="overhead_incl_gratuity" class="font-semibold text-gray-900"></span>
             </div>
           </div>
-
-          <!-- 세부 공제 내역 -->
-          <div class="mt-6">
-            <h3 class="text-lg font-bold text-gray-700 mb-2">세부 공제 내역</h3>
-            <ul class="text-sm text-gray-600 space-y-1">
-              <li class="flex justify-between"><span>국민연금 (4.5%)</span><span id="np_deduction"></span></li>
-              <li class="flex justify-between"><span>건강보험 (3.545%)</span><span id="hi_deduction"></span></li>
-              <li class="flex justify-between"><span>장기요양 (건보료의 12.95%)</span><span id="ltc_deduction"></span></li>
-              <li class="flex justify-between"><span>고용보험 (0.9%)</span><span id="ei_deduction"></span></li>
-              <li class="flex justify-between"><span>소득세 (간이세액표)</span><span id="tax_deduction"></span></li>
-              <li class="flex justify-between"><span>지방소득세 (10%)</span><span id="local_tax_deduction"></span></li>
-            </ul>
-
-            <!-- 사업주 부담분(세부) -->
-            <div class="mt-6 border-t pt-4">
-              <h4 class="text-base font-bold text-gray-700 mb-2">사업주 부담분</h4>
-              <ul class="text-sm text-gray-600 space-y-1">
-                <li class="flex justify-between"><span>국민연금 (4.5%)</span><span id="np_er"></span></li>
-                <li class="flex justify-between"><span>건강보험 (3.545%)</span><span id="hi_er"></span></li>
-                <li class="flex justify-between"><span>장기요양 (건보료의 12.95%)</span><span id="ltc_er"></span></li>
-                <li class="flex justify-between"><span>고용보험 (1.15%)</span><span id="ei_er"></span></li>
-                <li class="flex justify-between"><span>산재보험 (0.72%)</span><span id="wci_er"></span></li>
-                <li class="flex justify-between font-semibold pt-1"><span>4대보험 사업주 부담분</span><span id="er_total"></span></li>
-              </ul>
-
-              <details class="mt-4 text-[11px] text-gray-500">
-                <summary class="cursor-pointer">기준 금액(보수월액/세액표 기준) 보기</summary>
-                <div class="mt-2 space-y-1">
-                  <div class="flex justify-between"><span>보수월액(비과세 제외)</span><span id="base_ins"></span></div>
-                  <div class="flex justify-between"><span>국민연금 기준소득(천원단위·상·하한)</span><span id="base_np"></span></div>
-                  <div class="flex justify-between"><span>건강보험 산정기준(상·하한)</span><span id="base_hi"></span></div>
-                  <div class="flex justify-between"><span>고용보험 산정기준</span><span id="base_ei"></span></div>
-                  <div class="flex justify-between"><span>간이세액표 기준금액</span><span id="base_tax"></span></div>
-                </div>
-              </details>
-            </div>
-          </div>
         </div>
 
         <div id="error_message" class="text-center text-red-500 mt-4 hidden">유효한 금액을 입력해 주세요.</div>
@@ -182,24 +147,49 @@
         <div id="multi_inputs" class="space-y-2"></div>
 
         <!-- 결과 표 -->
-        <!-- 기본: 가로 스크롤 허용 / XL(>=1280px, 1920px 포함)에서는 스크롤 제거 & 한 화면에 맞춤 -->
+        <!-- 기본: 가로 스크롤 / XL(>=1280px)에서는 스크롤 제거 & 한 화면에 맞춤 -->
         <div class="overflow-x-auto xl:overflow-x-visible mt-4">
-          <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden table-fixed min-w-[1300px] xl:min-w-0">
+          <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden table-fixed min-w-[1280px] xl:min-w-0 tabular-nums">
+            <!-- 고정 비율 배분 (합계 100%) -->
+            <colgroup>
+              <col style="width:9%;">  <!-- 실수령액 -->
+              <col style="width:9%;">  <!-- 비과세 -->
+              <col style="width:10%;"> <!-- 지급총액 -->
+              <col style="width:10%;"> <!-- 공제합계 -->
+              <col style="width:12%;"> <!-- 연봉(제외) -->
+              <col style="width:12%;"> <!-- 연봉(포함) -->
+              <col style="width:12%;"> <!-- 총부담(제외) -->
+              <col style="width:7%;">  <!-- 총부담%(제외) -->
+              <col style="width:12%;"> <!-- 총부담(포함) -->
+              <col style="width:7%;">  <!-- 총부담%(포함) -->
+            </colgroup>
             <thead class="bg-gray-50 text-gray-700">
-              <tr>
+              <tr class="leading-tight">
                 <th class="px-2 py-2 border-b text-right whitespace-nowrap">실수령액</th>
                 <th class="px-2 py-2 border-b text-right whitespace-nowrap">비과세</th>
                 <th class="px-2 py-2 border-b text-right whitespace-nowrap">지급총액</th>
                 <th class="px-2 py-2 border-b text-right whitespace-nowrap">공제합계</th>
-                <th class="px-2 py-2 border-b text-right whitespace-nowrap">연봉 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
-                <th class="px-2 py-2 border-b text-right whitespace-nowrap">연봉 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
-                <th class="px-2 py-2 border-b text-right whitespace-nowrap">총부담 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
-                <th class="px-2 py-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(제외)</span></th>
-                <th class="px-2 py-2 border-b text-right whitespace-nowrap">총부담 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
-                <th class="px-2 py-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(포함)</span></th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">
+                  연봉 <span class="text-[10px] text-gray-500">(퇴직금제외)</span>
+                </th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">
+                  연봉 <span class="text-[10px] text-gray-500">(퇴직금포함)</span>
+                </th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">
+                  총부담 <span class="text-[10px] text-gray-500">(퇴직금제외)</span>
+                </th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">
+                  총부담% <span class="text-[10px] text-gray-500">(제외)</span>
+                </th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">
+                  총부담 <span class="text-[10px] text-gray-500">(퇴직금포함)</span>
+                </th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">
+                  총부담% <span class="text-[10px] text-gray-500">(포함)</span>
+                </th>
               </tr>
             </thead>
-            <tbody id="multi_results" class="text-gray-800"></tbody>
+            <tbody id="multi_results" class="text-gray-800 align-middle"></tbody>
           </table>
         </div>
 
@@ -527,16 +517,16 @@
         const tr = document.createElement('tr');
         tr.className='border-t';
         tr.innerHTML = `
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(netPay)}</td>
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(nonTax)}</td>
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.gross)}</td>
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.total)}</td>
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.annual_excl)}</td>
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.annual_incl)}</td>
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.total_burden_excl)}</td>
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmtPct(exclPct)}</td>
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.total_burden_incl)}</td>
-          <td class="px-2 py-2 whitespace-nowrap text-right">${fmtPct(inclPct)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmt(netPay)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmt(nonTax)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmt(res.gross)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmt(res.total)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmt(res.annual_excl)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmt(res.annual_incl)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmt(res.total_burden_excl)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmtPct(exclPct)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmt(res.total_burden_incl)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right align-middle">${fmtPct(inclPct)}</td>
         `;
         multiResults.appendChild(tr);
       });
