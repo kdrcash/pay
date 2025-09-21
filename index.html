@@ -182,20 +182,21 @@
         <div id="multi_inputs" class="space-y-2"></div>
 
         <!-- 결과 표 -->
-        <div class="overflow-x-auto mt-4">
-          <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden min-w-[1300px]">
+        <!-- 기본: 가로 스크롤 허용 / XL(>=1280px, 1920px 포함)에서는 스크롤 제거 & 한 화면에 맞춤 -->
+        <div class="overflow-x-auto xl:overflow-x-visible mt-4">
+          <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden table-fixed min-w-[1300px] xl:min-w-0">
             <thead class="bg-gray-50 text-gray-700">
               <tr>
-                <th class="p-2 border-b text-right whitespace-nowrap">실수령액</th>
-                <th class="p-2 border-b text-right whitespace-nowrap">비과세</th>
-                <th class="p-2 border-b text-right whitespace-nowrap">지급총액</th>
-                <th class="p-2 border-b text-right whitespace-nowrap">공제합계</th>
-                <th class="p-2 border-b text-right whitespace-nowrap">연봉 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
-                <th class="p-2 border-b text-right whitespace-nowrap">연봉 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
-                <th class="p-2 border-b text-right whitespace-nowrap">총부담 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
-                <th class="p-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(제외)</span></th>
-                <th class="p-2 border-b text-right whitespace-nowrap">총부담 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
-                <th class="p-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(포함)</span></th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">실수령액</th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">비과세</th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">지급총액</th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">공제합계</th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">연봉 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">연봉 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">총부담 <span class="text-xs text-gray-500">(퇴직금제외)</span></th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(제외)</span></th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">총부담 <span class="text-xs text-gray-500">(퇴직금포함)</span></th>
+                <th class="px-2 py-2 border-b text-right whitespace-nowrap">총부담% <span class="text-xs text-gray-500">(포함)</span></th>
               </tr>
             </thead>
             <tbody id="multi_results" class="text-gray-800"></tbody>
@@ -526,16 +527,16 @@
         const tr = document.createElement('tr');
         tr.className='border-t';
         tr.innerHTML = `
-          <td class="p-2 whitespace-nowrap text-right">${fmt(netPay)}</td>
-          <td class="p-2 whitespace-nowrap text-right">${fmt(nonTax)}</td>
-          <td class="p-2 whitespace-nowrap text-right">${fmt(res.gross)}</td>
-          <td class="p-2 whitespace-nowrap text-right">${fmt(res.total)}</td>
-          <td class="p-2 whitespace-nowrap text-right">${fmt(res.annual_excl)}</td>
-          <td class="p-2 whitespace-nowrap text-right">${fmt(res.annual_incl)}</td>
-          <td class="p-2 whitespace-nowrap text-right">${fmt(res.total_burden_excl)}</td>
-          <td class="p-2 whitespace-nowrap text-right">${fmtPct(exclPct)}</td>
-          <td class="p-2 whitespace-nowrap text-right">${fmt(res.total_burden_incl)}</td>
-          <td class="p-2 whitespace-nowrap text-right">${fmtPct(inclPct)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(netPay)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(nonTax)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.gross)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.total)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.annual_excl)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.annual_incl)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.total_burden_excl)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmtPct(exclPct)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmt(res.total_burden_incl)}</td>
+          <td class="px-2 py-2 whitespace-nowrap text-right">${fmtPct(inclPct)}</td>
         `;
         multiResults.appendChild(tr);
       });
@@ -549,4 +550,3 @@
   </script>
 </body>
 </html>
-
