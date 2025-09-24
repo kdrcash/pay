@@ -285,7 +285,7 @@
             <div class="flex justify-between"><span>건강보험 보수월액 상한</span><span id="hi_max_label"></span></div>
             <!-- ✅ 소득세 면세 기준 추가 -->
             <div class="flex justify-between font-semibold">
-              <span>소득세 면세 기준(비과세 제외 보수월액)</span>
+              <span>소득세 면세 기준</span>
               <span id="tax_zero_label"></span>
             </div>
           </div>
@@ -359,7 +359,7 @@
       document.getElementById('hi_max_label').textContent = fmt(HI_MAX);
       // ✅ 면세 기준 라벨
       document.getElementById('tax_zero_label').textContent =
-        fmt(TAX_ZERO_THRESHOLD) + ' 미만 ⇒ 소득세 0원';
+        fmt(TAX_ZERO_THRESHOLD);
     }
     function openVerModal(){ fillVerModalBounds(); verModal.classList.remove('hidden'); verModal.classList.add('flex'); document.body.classList.add('overflow-hidden'); }
     function closeVerModal(){ verModal.classList.add('hidden'); verModal.classList.remove('flex'); document.body.classList.remove('overflow-hidden'); }
